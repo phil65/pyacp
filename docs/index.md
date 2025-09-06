@@ -1,4 +1,4 @@
-# agent-client-protocol-python
+# Agent Client Protocol - Python SDK
 
 A Python implementation of the Agent Client Protocol (ACP) used by editors like Zed to talk to external agents over stdio.
 
