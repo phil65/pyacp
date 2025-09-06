@@ -16,6 +16,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+dependencies = [
+  "pydantic>=2.7",
+]
+
 
 [project.urls]
 Homepage = "https://psiace.github.io/agent-client-protocol-python/"
@@ -24,7 +28,10 @@ Documentation = "https://psiace.github.io/agent-client-protocol-python/"
 
 [dependency-groups]
 dev = [
+    "datamodel-code-generator>=0.25",
+
     "pytest>=7.2.0",
+    "pytest-asyncio>=0.21.0",
     "pre-commit>=2.20.0",
     "tox-uv>=1.11.3",
     "deptry>=0.23.0",
@@ -97,6 +104,13 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
+"examples/*" = ["ALL"]
+"src/acp/meta.py" = ["ALL"]
+"src/acp/schema.py" = ["ALL"]
 
 [tool.ruff.format]
 preview = true
+exclude = [
+    "src/acp/meta.py",
+    "src/acp/schema.py",
+]

@@ -4,6 +4,11 @@ install: ## Install the virtual environment and install the pre-commit hooks
 	@uv sync
 	@uv run pre-commit install
 
+.PHONY: gen-all
+gen-all: ## Generate all code from schema
+	@echo "🚀 Generating all code"
+	@uv run scripts/gen_all.py
+
 .PHONY: check
 check: ## Run code quality tools.
 	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
@@ -11,7 +16,7 @@ check: ## Run code quality tools.
 	@echo "🚀 Linting code: Running pre-commit"
 	@uv run pre-commit run -a
 	@echo "🚀 Static type checking: Running ty"
-	@uv run ty check
+	@uv run ty check --exclude "src/acp/meta.py" --exclude "src/acp/schema.py" --exclude "examples/*.py"
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
 	@uv run deptry src
 

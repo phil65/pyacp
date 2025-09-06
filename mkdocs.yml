@@ -5,11 +5,10 @@ site_description: A Python implement of Agent Client Protocol (ACP, by Zed Indus
 site_author: Chojan Shang
 edit_uri: edit/main/docs/
 repo_name: psiace/agent-client-protocol-python
-copyright: Maintained by <a href="https://psiace.com">psiace</a>.
+copyright: Maintained by <a href="https://github.com/psiace">psiace</a>.
 
 nav:
   - Home: index.md
-  - Modules: modules.md
 plugins:
   - search
   - mkdocstrings:
