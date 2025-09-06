@@ -1,4 +1,4 @@
-site_name: agent-client-protocol-python
+site_name: Agent Client Protocol - Python SDK
 repo_url: https://github.com/psiace/agent-client-protocol-python
 site_url: https://psiace.github.io/agent-client-protocol-python
 site_description: A Python implement of Agent Client Protocol (ACP, by Zed Industries)
@@ -9,6 +9,8 @@ copyright: Maintained by <a href="https://github.com/psiace">psiace</a>.
 
 nav:
   - Home: index.md
+  - Quick Start: quickstart.md
+  - Mini SWE Agent: mini-swe-agent.md
 plugins:
   - search
   - mkdocstrings:

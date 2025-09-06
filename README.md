@@ -1,74 +1,52 @@
-# agent-client-protocol-python
+# Agent Client Protocol - Python SDK
 
-[![Release](https://img.shields.io/github/v/release/psiace/agent-client-protocol-python)](https://img.shields.io/github/v/release/psiace/agent-client-protocol-python)
-[![Build status](https://img.shields.io/github/actions/workflow/status/psiace/agent-client-protocol-python/main.yml?branch=main)](https://github.com/psiace/agent-client-protocol-python/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/psiace/agent-client-protocol-python/branch/main/graph/badge.svg)](https://codecov.io/gh/psiace/agent-client-protocol-python)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/psiace/agent-client-protocol-python)](https://img.shields.io/github/commit-activity/m/psiace/agent-client-protocol-python)
-[![License](https://img.shields.io/github/license/psiace/agent-client-protocol-python)](https://img.shields.io/github/license/psiace/agent-client-protocol-python)
+A Python implementation of the Agent Client Protocol (ACP) used by editors like Zed to talk to external agents over stdio.
 
-A Python implement of Agent Client Protocol (ACP, by Zed Industries)
+- Repository: https://github.com/psiace/agent-client-protocol-python
+- Docs: https://psiace.github.io/agent-client-protocol-python/
 
-- **Github repository**: <https://github.com/psiace/agent-client-protocol-python/>
-- **Documentation** <https://psiace.github.io/agent-client-protocol-python/>
+## What this provides
 
-## Getting started with your project
+- Typed ACP client/agent primitives (`acp` package under `src/`)
+- A runnable example: a bridge that wraps mini-swe-agent as an ACP agent
+- Reference implementations under `reference/` for learning and comparison
 
-### 1. Create a New Repository
+## Quick start
 
-First, create a repository on GitHub with the same name as this project, and then run the following commands:
-
-```bash
-git init -b main
-git add .
-git commit -m "init commit"
-git remote add origin git@github.com:psiace/agent-client-protocol-python.git
-git push -u origin main
-```
-
-### 2. Set Up Your Development Environment
-
-Then, install the environment and the pre-commit hooks with
+Install the development environment:
 
 ```bash
 make install
 ```
 
-This will also generate your `uv.lock` file
-
-### 3. Run the pre-commit hooks
-
-Initially, the CI/CD pipeline might be failing due to formatting issues. To resolve those run:
+Run quality checks:
 
 ```bash
-uv run pre-commit run -a
+make check
 ```
 
-### 4. Commit the changes
-
-Lastly, commit the changes made by the two steps above to your repository.
+Run tests:
 
 ```bash
-git add .
-git commit -m 'Fix formatting issues'
-git push origin main
+make test
 ```
 
-You are now ready to start development on your project!
-The CI/CD pipeline will be triggered when you open a pull request, merge to main, or when you create a new release.
+## Example: Mini SWE Agent bridge
 
-To finalize the set-up for publishing to PyPI, see [here](https://fpgmaas.github.io/cookiecutter-uv/features/publishing/#set-up-for-pypi).
-For activating the automatic documentation with MkDocs, see [here](https://fpgmaas.github.io/cookiecutter-uv/features/mkdocs/#enabling-the-documentation-on-github).
-To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-uv/features/codecov/).
+A minimal ACP bridge for mini-swe-agent is provided under [`examples/mini_swe_agent`](file:///Users/psiace/OSS/agent-client-protocol-python/examples/mini_swe_agent/README.md). It shows how to:
 
-## Releasing a new version
+- Parse a prompt from ACP content blocks
+- Stream agent output to the client with `session/update`
+- Map command execution to `tool_call` and `tool_call_update`
 
-- Create an API Token on [PyPI](https://pypi.org/).
-- Add the API Token to your projects secrets with the name `PYPI_TOKEN` by visiting [this page](https://github.com/psiace/agent-client-protocol-python/settings/secrets/actions/new).
-- Create a [new release](https://github.com/psiace/agent-client-protocol-python/releases/new) on Github.
-- Create a new tag in the form `*.*.*`.
+See the example’s README or the docs quickstart for Zed configuration.
 
-For more details, see [here](https://fpgmaas.github.io/cookiecutter-uv/features/cicd/#how-to-trigger-a-release).
+## Documentation
 
----
+- Getting started: [docs/index.md](docs/index.md)
+- Quickstart: [docs/quickstart.md](docs/quickstart.md)
+- Mini SWE Agent example details: [docs/mini-swe-agent.md](docs/mini-swe-agent.md)
 
-Repository initiated with [fpgmaas/cookiecutter-uv](https://github.com/fpgmaas/cookiecutter-uv).
+## Notes
+
+- The `reference/` directory contains educational examples and may include optional dependencies. These are not required to use the example bridge.
