@@ -2,20 +2,19 @@
 
 A minimal Agent Client Protocol (ACP) bridge that wraps mini-swe-agent so it can be run by Zed as an external agent over stdio.
 
-## Configure in Zed (using this repo’s venv)
+## Configure in Zed
 
-Add an `agent_servers` entry to Zed’s `settings.json`. Point `command` to this repo’s venv Python and `args` to this example script:
+Add an `agent_servers` entry to Zed’s `settings.json`. Point `command` to the Python interpreter that has both `agent-client-protocol` and `mini-swe-agent` installed, and `args` to this example script:
 
 ```json
 {
   "agent_servers": {
     "Mini SWE Agent (Python)": {
-      "command": "/absolute/path/to/agent-client-protocol-python/.venv/bin/python",
+      "command": "/abs/path/to/python",
       "args": [
-        "/absolute/path/to/agent-client-protocol-python/examples/mini_swe_agent/agent.py"
+        "/abs/path/to/agent-client-protocol-python/examples/mini_swe_agent/agent.py"
       ],
       "env": {
-        "PYTHONPATH": "/absolute/path/to/agent-client-protocol-python/src",
         "MINI_SWE_MODEL": "openrouter/openai/gpt-4o-mini",
         "MINI_SWE_MODEL_KWARGS": "{\"api_base\":\"https://openrouter.ai/api/v1\"}",
         "OPENROUTER_API_KEY": "sk-or-..."
@@ -26,9 +25,7 @@ Add an `agent_servers` entry to Zed’s `settings.json`. Point `command` to this
 ```
 
 Notes
-- `command` must be the absolute path to this repository’s venv Python.
-- `args` must point to this example script.
-- `PYTHONPATH` must point to this repository’s `src` so the `acp` package can be imported.
+- If you install `agent-client-protocol` from PyPI, you do not need to set `PYTHONPATH`.
 - Using OpenRouter:
   - Set `MINI_SWE_MODEL` to a model supported by OpenRouter (e.g. `openrouter/openai/gpt-4o-mini`, `openrouter/anthropic/claude-3.5-sonnet`).
   - Set `MINI_SWE_MODEL_KWARGS` to a JSON containing `api_base`: `{ "api_base": "https://openrouter.ai/api/v1" }`.
@@ -37,10 +34,10 @@ Notes
 
 ## Requirements
 
-Install mini-swe-agent (or at least its core deps) into this repo’s venv:
+Install mini-swe-agent (or at least its core deps) into the same environment:
 
 ```bash
-/path/to/.venv/bin/pip install mini-swe-agent
+pip install agent-client-protocol mini-swe-agent
 # or: pip install litellm jinja2 tenacity
 ```
 

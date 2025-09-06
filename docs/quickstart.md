@@ -1,31 +1,49 @@
 # Quickstart
 
-This repository provides a Python implementation of the Agent Client Protocol (ACP) and a minimal example that bridges mini-swe-agent into an ACP agent.
+Use the published package to build an ACP agent, or run the included example.
 
-## Prerequisites
-
-- Python 3.10+
-- A virtual environment for this repo (`make install` will create one with uv)
-- Zed editor (for running the example agent)
-
-## Install
+## Install the SDK
 
 ```bash
-make install
+pip install agent-client-protocol
 ```
 
-Run checks:
+## Minimal agent
 
-```bash
-make check
+```python
+import asyncio
+from acp import Agent, AgentSideConnection, Client, InitializeRequest, InitializeResponse, PromptRequest, PromptResponse, SessionNotification, stdio_streams, PROTOCOL_VERSION
+from acp.schema import ContentBlock1, SessionUpdate2
+
+class EchoAgent(Agent):
+    def __init__(self, client: Client):
+        self.client = client
+    async def initialize(self, _p: InitializeRequest) -> InitializeResponse:
+        return InitializeResponse(protocolVersion=PROTOCOL_VERSION)
+    async def prompt(self, p: PromptRequest) -> PromptResponse:
+        await self.client.sessionUpdate(SessionNotification(
+            sessionId=p.sessionId,
+            update=SessionUpdate2(sessionUpdate="agent_message_chunk", content=ContentBlock1(type="text", text="Hello from ACP")),
+        ))
+        return PromptResponse(stopReason="end_turn")
+
+async def main() -> None:
+    reader, writer = await stdio_streams()
+    AgentSideConnection(lambda c: EchoAgent(c), writer, reader)
+    await asyncio.Event().wait()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
+
+Run this program from your ACP-capable client.
 
 ## Run the Mini SWE Agent bridge in Zed
 
-Install mini-swe-agent into this repo’s venv.
+Install `mini-swe-agent` (or at least its core dependencies) into the same environment that will run the example:
 
 ```bash
-./.venv/bin/pip install mini-swe-agent
+pip install mini-swe-agent
 ```
 
 Add an agent server to Zed’s `settings.json`:
@@ -34,12 +52,11 @@ Add an agent server to Zed’s `settings.json`:
 {
   "agent_servers": {
     "Mini SWE Agent (Python)": {
-      "command": "/absolute/path/to/agent-client-protocol-python/.venv/bin/python",
+      "command": "/abs/path/to/python",
       "args": [
-        "/absolute/path/to/agent-client-protocol-python/examples/mini_swe_agent/agent.py"
+        "/abs/path/to/agent-client-protocol-python/examples/mini_swe_agent/agent.py"
       ],
       "env": {
-        "PYTHONPATH": "/absolute/path/to/agent-client-protocol-python/src",
         "MINI_SWE_MODEL": "openrouter/openai/gpt-4o-mini",
         "MINI_SWE_MODEL_KWARGS": "{\"api_base\":\"https://openrouter.ai/api/v1\"}",
         "OPENROUTER_API_KEY": "sk-or-..."
@@ -51,4 +68,4 @@ Add an agent server to Zed’s `settings.json`:
 
 In Zed, open the Agents panel and select "Mini SWE Agent (Python)".
 
-For details on behavior and message mapping, see [mini-swe-agent.md](mini-swe-agent.md).
+See [mini-swe-agent.md](mini-swe-agent.md) for behavior and message mapping details.

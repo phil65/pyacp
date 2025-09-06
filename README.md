@@ -1,52 +1,70 @@
-# Agent Client Protocol - Python SDK
+# Agent Client Protocol (Python)
 
-A Python implementation of the Agent Client Protocol (ACP) used by editors like Zed to talk to external agents over stdio.
+A Python implementation of the Agent Client Protocol (ACP). Use it to build agents that communicate with ACP-capable clients (e.g. Zed) over stdio.
 
+- Package name: `agent-client-protocol` (import as `acp`)
 - Repository: https://github.com/psiace/agent-client-protocol-python
 - Docs: https://psiace.github.io/agent-client-protocol-python/
 
-## What this provides
-
-- Typed ACP client/agent primitives (`acp` package under `src/`)
-- A runnable example: a bridge that wraps mini-swe-agent as an ACP agent
-- Reference implementations under `reference/` for learning and comparison
-
-## Quick start
-
-Install the development environment:
+## Install
 
 ```bash
-make install
+pip install agent-client-protocol
+# or
+uv add agent-client-protocol
 ```
 
-Run quality checks:
+## Development (contributors)
 
 ```bash
-make check
+make install   # set up venv
+make check     # lint + typecheck
+make test      # run tests
 ```
 
-Run tests:
+## Minimal agent example
 
-```bash
-make test
+```python
+# agent_main.py
+import asyncio
+from acp import Agent, AgentSideConnection, Client, InitializeRequest, InitializeResponse, PromptRequest, PromptResponse, SessionNotification, stdio_streams, PROTOCOL_VERSION
+from acp.schema import ContentBlock1, SessionUpdate2
+
+class EchoAgent(Agent):
+    def __init__(self, client: Client) -> None:
+        self.client = client
+
+    async def initialize(self, _p: InitializeRequest) -> InitializeResponse:
+        return InitializeResponse(protocolVersion=PROTOCOL_VERSION)
+
+    async def prompt(self, p: PromptRequest) -> PromptResponse:
+        text = "".join([getattr(b, "text", "") for b in p.prompt if getattr(b, "type", None) == "text"]) or "(empty)"
+        await self.client.sessionUpdate(SessionNotification(
+            sessionId=p.sessionId,
+            update=SessionUpdate2(sessionUpdate="agent_message_chunk", content=ContentBlock1(type="text", text=f"Echo: {text}")),
+        ))
+        return PromptResponse(stopReason="end_turn")
+
+async def main() -> None:
+    reader, writer = await stdio_streams()
+    AgentSideConnection(lambda c: EchoAgent(c), writer, reader)
+    await asyncio.Event().wait()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
+
+Run this executable from your ACP-capable client (e.g. configure Zed to launch it). The library takes care of the stdio JSON-RPC transport.
 
 ## Example: Mini SWE Agent bridge
 
-A minimal ACP bridge for mini-swe-agent is provided under [`examples/mini_swe_agent`](file:///Users/psiace/OSS/agent-client-protocol-python/examples/mini_swe_agent/README.md). It shows how to:
+A minimal ACP bridge for mini-swe-agent is provided under [`examples/mini_swe_agent`](examples/mini_swe_agent/README.md). It demonstrates:
 
-- Parse a prompt from ACP content blocks
-- Stream agent output to the client with `session/update`
-- Map command execution to `tool_call` and `tool_call_update`
-
-See the example’s README or the docs quickstart for Zed configuration.
+- Parsing a prompt from ACP content blocks
+- Streaming agent output via `session/update`
+- Mapping command execution to `tool_call` and `tool_call_update`
 
 ## Documentation
 
-- Getting started: [docs/index.md](docs/index.md)
 - Quickstart: [docs/quickstart.md](docs/quickstart.md)
-- Mini SWE Agent example details: [docs/mini-swe-agent.md](docs/mini-swe-agent.md)
-
-## Notes
-
-- The `reference/` directory contains educational examples and may include optional dependencies. These are not required to use the example bridge.
+- Mini SWE Agent example: [docs/mini-swe-agent.md](docs/mini-swe-agent.md)
