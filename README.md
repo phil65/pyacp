@@ -25,30 +25,52 @@ make test      # run tests
 ## Minimal agent example
 
 ```python
-# agent_main.py
 import asyncio
-from acp import Agent, AgentSideConnection, Client, InitializeRequest, InitializeResponse, PromptRequest, PromptResponse, SessionNotification, stdio_streams, PROTOCOL_VERSION
-from acp.schema import ContentBlock1, SessionUpdate2
+
+from acp import (
+    Agent,
+    AgentSideConnection,
+    AuthenticateRequest,
+    CancelNotification,
+    InitializeRequest,
+    InitializeResponse,
+    LoadSessionRequest,
+    NewSessionRequest,
+    NewSessionResponse,
+    PromptRequest,
+    PromptResponse,
+    stdio_streams,
+)
+
 
 class EchoAgent(Agent):
-    def __init__(self, client: Client) -> None:
-        self.client = client
+    async def initialize(self, params: InitializeRequest) -> InitializeResponse:
+        return InitializeResponse(protocolVersion=params.protocolVersion)
 
-    async def initialize(self, _p: InitializeRequest) -> InitializeResponse:
-        return InitializeResponse(protocolVersion=PROTOCOL_VERSION)
+    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
+        return NewSessionResponse(sessionId="sess-1")
 
-    async def prompt(self, p: PromptRequest) -> PromptResponse:
-        text = "".join([getattr(b, "text", "") for b in p.prompt if getattr(b, "type", None) == "text"]) or "(empty)"
-        await self.client.sessionUpdate(SessionNotification(
-            sessionId=p.sessionId,
-            update=SessionUpdate2(sessionUpdate="agent_message_chunk", content=ContentBlock1(type="text", text=f"Echo: {text}")),
-        ))
+    async def loadSession(self, params: LoadSessionRequest) -> None:
+        return None
+
+    async def authenticate(self, params: AuthenticateRequest) -> None:
+        return None
+
+    async def prompt(self, params: PromptRequest) -> PromptResponse:
+        # Normally you'd stream updates via sessionUpdate
         return PromptResponse(stopReason="end_turn")
+
+    async def cancel(self, params: CancelNotification) -> None:
+        return None
+
 
 async def main() -> None:
     reader, writer = await stdio_streams()
-    AgentSideConnection(lambda c: EchoAgent(c), writer, reader)
+    # For an agent process, local writes go to client stdin (writer=stdout)
+    AgentSideConnection(lambda _conn: EchoAgent(), writer, reader)
+    # Keep running; in a real agent you would await tasks or add your own loop
     await asyncio.Event().wait()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

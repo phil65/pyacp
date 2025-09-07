@@ -19,7 +19,7 @@ from acp import (
 class EchoAgent(Agent):
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         # Avoid serializer warnings by omitting defaults
-        return InitializeResponse(protocolVersion=params.protocolVersion, agentCapabilities=None, authMethods=[])
+        return InitializeResponse(protocolVersion=params.protocolVersion)
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
         return NewSessionResponse(sessionId="sess-1")
