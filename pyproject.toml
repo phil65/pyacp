@@ -1,6 +1,6 @@
 [project]
 name = "agent-client-protocol"
-version = "0.0.1"
+version = "0.3.0"
 description = "A Python implement of Agent Client Protocol (ACP, by Zed Industries)"
 authors = [{ name = "Chojan Shang", email = "psiace@apache.org" }]
 readme = "README.md"
@@ -40,6 +40,7 @@ dev = [
     "mkdocs-material>=8.5.10",
     "mkdocstrings[python]>=0.26.1",
     "mini-swe-agent>=1.10.0",
+    "python-dotenv>=1.1.1",
 ]
 
 [build-system]
