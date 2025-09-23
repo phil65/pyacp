@@ -1,8 +1,8 @@
 import asyncio
 import contextlib
 import os
-import sys
 from pathlib import Path
+import sys
 
 
 async def main() -> None:
@@ -64,7 +64,7 @@ async def main() -> None:
     # If either process exits, terminate the other gracefully
     agent_task = asyncio.create_task(agent.wait())
     client_task = asyncio.create_task(client.wait())
-    done, pending = await asyncio.wait({agent_task, client_task}, return_when=asyncio.FIRST_COMPLETED)
+    done, _pending = await asyncio.wait({agent_task, client_task}, return_when=asyncio.FIRST_COMPLETED)
 
     # Terminate the peer process
     if agent_task in done and client.returncode is None:
@@ -77,7 +77,7 @@ async def main() -> None:
     # Wait a bit, then kill if still running
     try:
         await asyncio.wait_for(asyncio.gather(agent.wait(), client.wait()), timeout=3)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         with contextlib.suppress(ProcessLookupError):
             if agent.returncode is None:
                 agent.kill()

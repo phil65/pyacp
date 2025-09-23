@@ -1,25 +1,32 @@
+from __future__ import annotations
+
 import asyncio
-from typing import Any
+from typing import TYPE_CHECKING
 
 from acp import (
+    PROTOCOL_VERSION,
     Agent,
     AgentSideConnection,
-    AuthenticateRequest,
-    AuthenticateResponse,
-    CancelNotification,
-    InitializeRequest,
     InitializeResponse,
-    NewSessionRequest,
     NewSessionResponse,
-    PromptRequest,
     PromptResponse,
     SessionNotification,
-    SetSessionModeRequest,
-    SetSessionModeResponse,
     stdio_streams,
-    PROTOCOL_VERSION,
 )
 from acp.schema import ContentBlock1, SessionUpdate2
+
+
+if TYPE_CHECKING:
+    from acp import (
+        AuthenticateRequest,
+        AuthenticateResponse,
+        CancelNotification,
+        InitializeRequest,
+        NewSessionRequest,
+        PromptRequest,
+        SetSessionModeRequest,
+        SetSessionModeResponse,
+    )
 
 
 class ExampleAgent(Agent):
@@ -30,10 +37,10 @@ class ExampleAgent(Agent):
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         return InitializeResponse(protocol_version=PROTOCOL_VERSION, agent_capabilities=None, auth_methods=[])
 
-    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None:  # noqa: ARG002
+    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None:
         return {}
 
-    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:  # noqa: ARG002
+    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
         session_id = f"sess-{self._next_session_id}"
         self._next_session_id += 1
         return NewSessionResponse(session_id=session_id)
@@ -41,7 +48,7 @@ class ExampleAgent(Agent):
     async def loadSession(self, params):  # type: ignore[override]
         return None
 
-    async def setSessionMode(self, params: SetSessionModeRequest) -> SetSessionModeResponse | None:  # noqa: ARG002
+    async def setSessionMode(self, params: SetSessionModeRequest) -> SetSessionModeResponse | None:
         return {}
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
@@ -78,13 +85,13 @@ class ExampleAgent(Agent):
             )
         return PromptResponse(stop_reason="end_turn")
 
-    async def cancel(self, params: CancelNotification) -> None:  # noqa: ARG002
+    async def cancel(self, params: CancelNotification) -> None:
         return None
 
-    async def extMethod(self, method: str, params: dict) -> dict:  # noqa: ARG002
+    async def extMethod(self, method: str, params: dict) -> dict:
         return {"example": "response"}
 
-    async def extNotification(self, method: str, params: dict) -> None:  # noqa: ARG002
+    async def extNotification(self, method: str, params: dict) -> None:
         return None
 
 

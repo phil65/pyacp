@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import json
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -12,20 +15,25 @@ from acp import (
     ClientSideConnection,
     InitializeRequest,
     InitializeResponse,
-    LoadSessionRequest,
     NewSessionRequest,
     NewSessionResponse,
-    PromptRequest,
     PromptResponse,
     ReadTextFileRequest,
     ReadTextFileResponse,
-    RequestPermissionRequest,
     RequestPermissionResponse,
     SessionNotification,
     SetSessionModeRequest,
     WriteTextFileRequest,
 )
 from acp.schema import ContentBlock1, SessionUpdate1, SessionUpdate2
+
+
+if TYPE_CHECKING:
+    from acp import (
+        LoadSessionRequest,
+        PromptRequest,
+        RequestPermissionRequest,
+    )
 
 # --------------------- Test Utilities ---------------------
 
@@ -52,8 +60,10 @@ class _Server:
             if self.server_reader and self.server_writer:
                 break
             await asyncio.sleep(0.01)
-        assert self.server_reader and self.server_writer
-        assert self.client_reader and self.client_writer
+        assert self.server_reader
+        assert self.server_writer
+        assert self.client_reader
+        assert self.client_writer
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -334,7 +344,8 @@ async def test_set_session_mode_and_extensions():
         await agent_conn.extNotification("note", {"y": 2})
         # allow dispatch
         await asyncio.sleep(0.05)
-        assert agent.ext_notes and agent.ext_notes[-1][0] == "note"
+        assert agent.ext_notes
+        assert agent.ext_notes[-1][0] == "note"
 
 
 @pytest.mark.asyncio

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import transports as aio_transports
 import contextlib
 import logging
 import platform
 import sys
-from asyncio import transports as aio_transports
 from typing import cast
 
 

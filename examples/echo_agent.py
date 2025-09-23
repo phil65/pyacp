@@ -1,18 +1,26 @@
+from __future__ import annotations
+
 import asyncio
+from typing import TYPE_CHECKING
 
 from acp import (
     Agent,
     AgentSideConnection,
-    InitializeRequest,
     InitializeResponse,
-    NewSessionRequest,
     NewSessionResponse,
-    PromptRequest,
     PromptResponse,
     SessionNotification,
     stdio_streams,
 )
 from acp.schema import ContentBlock1, SessionUpdate2
+
+
+if TYPE_CHECKING:
+    from acp import (
+        InitializeRequest,
+        NewSessionRequest,
+        PromptRequest,
+    )
 
 
 class EchoAgent(Agent):

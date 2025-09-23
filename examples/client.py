@@ -1,16 +1,25 @@
+from __future__ import annotations
+
 import asyncio
+import contextlib
 import os
 import sys
+from typing import TYPE_CHECKING
 
 from acp import (
-    Client,
     PROTOCOL_VERSION,
+    Client,
     ClientSideConnection,
     InitializeRequest,
     NewSessionRequest,
     PromptRequest,
-    SessionNotification,
 )
+
+
+if TYPE_CHECKING:
+    from acp import (
+        SessionNotification,
+    )
 
 
 class ExampleClient(Client):
@@ -51,7 +60,8 @@ async def main(argv: list[str]) -> int:
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
     )
-    assert proc.stdin and proc.stdout
+    assert proc.stdin
+    assert proc.stdout
 
     # Connect to agent stdio
     conn = ClientSideConnection(lambda _agent: ExampleClient(), proc.stdin, proc.stdout)
@@ -63,10 +73,8 @@ async def main(argv: list[str]) -> int:
     # Run REPL until EOF
     await interactive_loop(conn, new_sess.session_id)
 
-    try:
+    with contextlib.suppress(ProcessLookupError):
         proc.terminate()
-    except ProcessLookupError:
-        pass
     return 0
 
 

@@ -1,40 +1,35 @@
+from __future__ import annotations
+
 import asyncio
+import contextlib
+from dataclasses import dataclass
 import os
+from pathlib import Path
 import queue
-import re
 import threading
 import time
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Iterable, Literal, Optional
-
+from typing import TYPE_CHECKING, Literal
 
 from rich.spinner import Spinner
 from rich.text import Text
-from textual.app import App, ComposeResult, SystemCommand
+from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container, Vertical, VerticalScroll
 from textual.css.query import NoMatches
-from textual.events import Key
-from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Static, TextArea
 
 from acp import (
-    Client,
     PROTOCOL_VERSION,
+    Client,
     ClientSideConnection,
     InitializeRequest,
     NewSessionRequest,
     PromptRequest,
-    RequestPermissionRequest,
     RequestPermissionResponse,
-    SessionNotification,
     SetSessionModeRequest,
 )
 from acp.schema import (
     ContentBlock1,
-    PermissionOption,
-    RequestPermissionOutcome1,
     RequestPermissionOutcome2,
     SessionUpdate1,
     SessionUpdate2,
@@ -42,9 +37,18 @@ from acp.schema import (
     SessionUpdate4,
     SessionUpdate5,
     ToolCallContent1,
-    ToolCallUpdate,
 )
 from acp.stdio import _WritePipeProtocol
+
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.events import Key
+
+    from acp import (
+        RequestPermissionRequest,
+        SessionNotification,
+    )
 
 
 MODE = Literal["confirm", "yolo", "human"]
@@ -70,16 +74,16 @@ def _messages_to_steps(messages: list[UIMessage]) -> list[list[UIMessage]]:
 
 
 class SmartInputContainer(Container):
-    def __init__(self, app: "TextualMiniSweClient"):
+    def __init__(self, app: TextualMiniSweClient):
         super().__init__(classes="smart-input-container")
         self._app = app
         self._multiline_mode = False
         self.can_focus = True
         self.display = False
 
-        self.pending_prompt: Optional[str] = None
+        self.pending_prompt: str | None = None
         self._input_event = threading.Event()
-        self._input_result: Optional[str] = None
+        self._input_result: str | None = None
 
         self._header_display = Static(id="input-header-display", classes="message-header input-request-header")
         self._hint_text = Static(classes="hint-text")
@@ -177,7 +181,7 @@ class SmartInputContainer(Container):
 
 
 class MiniSweClientImpl(Client):
-    def __init__(self, app: "TextualMiniSweClient") -> None:
+    def __init__(self, app: TextualMiniSweClient) -> None:
         self._app = app
 
     async def sessionUpdate(self, params: SessionNotification) -> None:
@@ -288,12 +292,12 @@ class TextualMiniSweClient(App):
         self.messages: list[UIMessage] = []
         self._spinner = Spinner("dots")
         self.agent_state: Literal["UNINITIALIZED", "RUNNING", "AWAITING_INPUT", "STOPPED"] = "UNINITIALIZED"
-        self._bg_loop: Optional[asyncio.AbstractEventLoop] = None
-        self._bg_thread: Optional[threading.Thread] = None
-        self._conn: Optional[ClientSideConnection] = None
-        self._session_id: Optional[str] = None
-        self._pending_human_command: Optional[str] = None
-        self._outbox: "queue.Queue[list[ContentBlock1]]" = queue.Queue()
+        self._bg_loop: asyncio.AbstractEventLoop | None = None
+        self._bg_thread: threading.Thread | None = None
+        self._conn: ClientSideConnection | None = None
+        self._session_id: str | None = None
+        self._pending_human_command: str | None = None
+        self._outbox: queue.Queue[list[ContentBlock1]] = queue.Queue()
         # Pagination and metrics
         self._i_step: int = 0
         self.n_steps: int = 1
@@ -307,9 +311,8 @@ class TextualMiniSweClient(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Container(id="main"):
-            with self._vscroll:
-                with Vertical(id="content"):
-                    pass
+            with self._vscroll, Vertical(id="content"):
+                pass
             yield self.input_container
         yield Footer()
 
@@ -328,10 +331,8 @@ class TextualMiniSweClient(App):
 
     def on_unmount(self) -> None:
         if self._bg_loop:
-            try:
+            with contextlib.suppress(Exception):
                 self._bg_loop.call_soon_threadsafe(self._bg_loop.stop)
-            except Exception:
-                pass
 
     # --- Backend comms ---
 
@@ -348,7 +349,7 @@ class TextualMiniSweClient(App):
         t.start()
         self._bg_thread = t
 
-    async def _open_acp_streams_from_env(self) -> tuple[Optional[asyncio.StreamReader], Optional[asyncio.StreamWriter]]:
+    async def _open_acp_streams_from_env(self) -> tuple[asyncio.StreamReader | None, asyncio.StreamWriter | None]:
         """If launched via duet, open ACP streams from inherited FDs; else return (None, None)."""
         read_fd_s = os.environ.get("MSWEA_READ_FD")
         write_fd_s = os.environ.get("MSWEA_WRITE_FD")
@@ -405,7 +406,7 @@ class TextualMiniSweClient(App):
                     self.on_message_added(),
                 )
             )
-        except Exception as e:
+        except Exception:
             self.call_from_thread(
                 lambda: (
                     self.enqueue_message(UIMessage("assistant", f"ACP connect error: {e}")),
@@ -429,7 +430,7 @@ class TextualMiniSweClient(App):
                     continue
             # Send prompt turn
             try:
-                result = await self._conn.prompt(PromptRequest(session_id=self._session_id, prompt=blocks))
+                await self._conn.prompt(PromptRequest(session_id=self._session_id, prompt=blocks))
                 # Minimal finish/new task UX: after each stopReason, if not human and idle, offer new task
                 if (
                     self.mode != "human"
@@ -482,7 +483,7 @@ class TextualMiniSweClient(App):
     # --- Structured state helpers ---
 
     def _update_tool_call(
-        self, tool_id: str, *, title: Optional[str] = None, status: Optional[str] = None, content=None
+        self, tool_id: str, *, title: str | None = None, status: str | None = None, content=None
     ) -> None:
         tc = self._tool_calls.get(tool_id, {"toolCallId": tool_id, "title": "", "status": "pending", "content": []})
         if title is not None:
@@ -518,7 +519,7 @@ class TextualMiniSweClient(App):
             tc_container = Vertical(classes="message-container")
             container.mount(tc_container)
             tc_container.mount(Static("TOOL CALLS", classes="message-header"))
-            for tcid, tc in self._tool_calls.items():
+            for tc in self._tool_calls.values():
                 block = Vertical(classes="message-content")
                 tc_container.mount(block)
                 status = tc.get("status", "")
@@ -542,10 +543,8 @@ class TextualMiniSweClient(App):
             spinner_frame = str(self._spinner.render(time.time())).strip()
             status_text = f"{self.agent_state} {spinner_frame}"
         self.title = f"Step {self._i_step + 1}/{self.n_steps} - {status_text}"
-        try:
+        with contextlib.suppress(NoMatches):
             self.query_one("Header").set_class(self.agent_state == "RUNNING", "running")
-        except NoMatches:
-            pass
 
     # --- Actions ---
 
@@ -587,17 +586,13 @@ class TextualMiniSweClient(App):
             return
 
         def _schedule() -> None:
-            try:
+            with contextlib.suppress(Exception):
                 self._bg_loop.create_task(
                     self._conn.setSessionMode(SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id))
                 )
-            except Exception:
-                pass
 
-        try:
+        with contextlib.suppress(Exception):
             self._bg_loop.call_soon_threadsafe(_schedule)
-        except Exception:
-            pass
 
     def action_yolo(self):
         self.mode = "yolo"

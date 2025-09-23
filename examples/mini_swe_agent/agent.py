@@ -1,37 +1,31 @@
+from __future__ import annotations
+
 import asyncio
+from dataclasses import dataclass, field
+import json as _json
 import os
+from pathlib import Path
 import re
 import sys
+from typing import TYPE_CHECKING, Any, Literal
 import uuid
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Literal
-import json as _json
 
 from acp import (
+    PROTOCOL_VERSION,
     Agent,
     AgentSideConnection,
-    AuthenticateRequest,
-    CancelNotification,
-    Client,
-    InitializeRequest,
     InitializeResponse,
-    NewSessionRequest,
     NewSessionResponse,
-    PromptRequest,
     PromptResponse,
     SessionNotification,
-    SetSessionModeRequest,
     SetSessionModeResponse,
     stdio_streams,
-    PROTOCOL_VERSION,
 )
 from acp.schema import (
     ContentBlock1,
     PermissionOption,
-    RequestPermissionRequest,
-    RequestPermissionResponse,
     RequestPermissionOutcome2,
+    RequestPermissionRequest,
     SessionUpdate2,
     SessionUpdate3,
     SessionUpdate4,
@@ -39,6 +33,21 @@ from acp.schema import (
     ToolCallContent1,
     ToolCallUpdate,
 )
+
+
+if TYPE_CHECKING:
+    from acp import (
+        AuthenticateRequest,
+        CancelNotification,
+        Client,
+        InitializeRequest,
+        NewSessionRequest,
+        PromptRequest,
+        SetSessionModeRequest,
+    )
+    from acp.schema import (
+        RequestPermissionResponse,
+    )
 
 
 # Lazily import mini-swe-agent to avoid hard dependency for users who don't need this example
@@ -68,11 +77,11 @@ def _create_streaming_mini_agent(
     try:
         try:
             from minisweagent.agents.default import (
+                AgentConfig as _BaseCfg,
                 DefaultAgent,
+                LimitsExceeded,
                 NonTerminatingException,
                 Submitted,
-                LimitsExceeded,
-                AgentConfig as _BaseCfg,
             )  # type: ignore
             from minisweagent.environments.local import LocalEnvironment  # type: ignore
             from minisweagent.models.litellm_model import LitellmModel  # type: ignore
@@ -83,13 +92,15 @@ def _create_streaming_mini_agent(
                 if str(REF_SRC) not in sys.path:
                     sys.path.insert(0, str(REF_SRC))
                 from minisweagent.agents.default import (
+                    AgentConfig as _BaseCfg,
                     DefaultAgent,
+                    LimitsExceeded,
                     NonTerminatingException,
                     Submitted,
-                    LimitsExceeded,
-                    AgentConfig as _BaseCfg,
                 )  # type: ignore
-                from minisweagent.environments.local import LocalEnvironment  # type: ignore
+                from minisweagent.environments.local import (
+                    LocalEnvironment,  # type: ignore
+                )
                 from minisweagent.models.litellm_model import LitellmModel  # type: ignore
             else:
                 raise
@@ -221,9 +232,7 @@ def _create_streaming_mini_agent(
                 except Exception:
                     return False
                 out = resp.outcome
-                if isinstance(out, RequestPermissionOutcome2) and out.optionId in ("allow-once", "allow-always"):
-                    return True
-                return False
+                return bool(isinstance(out, RequestPermissionOutcome2) and out.optionId in ("allow-once", "allow-always"))
 
             def execute_action(self, action: dict) -> dict:  # type: ignore[override]
                 self._tool_seq += 1
@@ -246,7 +255,8 @@ def _create_streaming_mini_agent(
                                 status="cancelled",
                             )
                         )
-                        raise self._NonTerminatingException("Command not executed: denied by user")
+                        msg = "Command not executed: denied by user"
+                        raise self._NonTerminatingException(msg)
 
                 try:
                     # Mark in progress
@@ -352,7 +362,6 @@ class MiniSweACPAgent(Agent):
             if ce is not None:
                 cfg.confirm_exit = ce.lower() not in ("0", "false", "no")
             self._sessions[session_id] = {"cwd": cwd, "agent": None, "task": None, "config": cfg}
-        return None
 
     async def authenticate(self, _params: AuthenticateRequest) -> None:
         return None
@@ -493,9 +502,9 @@ class MiniSweACPAgent(Agent):
 
             # Execute and record observation in worker thread
             await asyncio.to_thread(agent.get_observation, response)
-        except getattr(agent, "_NonTerminatingException") as e:  # type: ignore[misc]
+        except agent._NonTerminatingException as e:  # type: ignore[misc]
             agent.add_message("user", str(e))
-        except getattr(agent, "_Submitted") as e:  # type: ignore[misc]
+        except agent._Submitted as e:  # type: ignore[misc]
             final_message = str(e)
             agent.add_message("user", final_message)
             # Ask for confirmation / new task if configured
@@ -516,7 +525,7 @@ class MiniSweACPAgent(Agent):
                 )
                 # Reset task so that next prompt can set a new one
                 sess["task"] = None
-        except getattr(agent, "_LimitsExceeded") as e:  # type: ignore[misc]
+        except agent._LimitsExceeded as e:  # type: ignore[misc]
             agent.add_message("user", f"Limits exceeded: {e}")
         except Exception as e:
             # Surface unexpected errors to the client to avoid silent waits

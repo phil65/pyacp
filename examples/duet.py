@@ -1,7 +1,7 @@
 import asyncio
 import os
-import sys
 from pathlib import Path
+import sys
 
 
 async def main() -> int:

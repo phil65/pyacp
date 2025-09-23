@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 import contextlib
+from dataclasses import dataclass
 import json
 import logging
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import Any, Protocol
 
 from pydantic import BaseModel, ValidationError
@@ -42,6 +42,7 @@ from .schema import (
     WriteTextFileRequest,
     WriteTextFileResponse,
 )
+
 
 # --- JSON-RPC 2.0 error helpers -------------------------------------------------
 
@@ -96,8 +97,7 @@ class _Pending:
 
 
 class Connection:
-    """
-    Minimal JSON-RPC 2.0 connection over newline-delimited JSON frames using
+    """Minimal JSON-RPC 2.0 connection over newline-delimited JSON frames using
     asyncio streams. KISS: only supports StreamReader/StreamWriter.
 
     - Outgoing messages always include {"jsonrpc": "2.0"}
@@ -270,8 +270,7 @@ class Agent(Protocol):
 
 
 class AgentSideConnection:
-    """
-    Agent-side connection. Use when you implement the Agent and need to talk to a Client.
+    """Agent-side connection. Use when you implement the Agent and need to talk to a Client.
 
     Parameters:
     - to_agent: factory that receives this connection and returns your Agent implementation
@@ -358,10 +357,9 @@ class AgentSideConnection:
                     await agent.extNotification(ext_name, params or {})  # type: ignore[arg-type]
                     return None
                 return None
-            else:
-                if hasattr(agent, "extMethod"):
-                    return await agent.extMethod(ext_name, params or {})  # type: ignore[arg-type]
-                return _NO_MATCH
+            if hasattr(agent, "extMethod"):
+                return await agent.extMethod(ext_name, params or {})  # type: ignore[arg-type]
+            return _NO_MATCH
         return _NO_MATCH
 
     # client-bound methods (agent -> client)
@@ -409,8 +407,7 @@ class AgentSideConnection:
 
 
 class ClientSideConnection:
-    """
-    Client-side connection. Use when you implement the Client and need to talk to an Agent.
+    """Client-side connection. Use when you implement the Client and need to talk to an Agent.
 
     Parameters:
     - to_client: factory that receives this connection and returns your Client implementation
@@ -520,10 +517,9 @@ class ClientSideConnection:
                     await client.extNotification(ext_name, params or {})  # type: ignore[arg-type]
                     return None
                 return None
-            else:
-                if hasattr(client, "extMethod"):
-                    return await client.extMethod(ext_name, params or {})  # type: ignore[arg-type]
-                return _NO_MATCH
+            if hasattr(client, "extMethod"):
+                return await client.extMethod(ext_name, params or {})  # type: ignore[arg-type]
+            return _NO_MATCH
         return _NO_MATCH
 
     # agent-bound methods (client -> agent)
