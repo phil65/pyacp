@@ -246,6 +246,7 @@ reportIgnoreCommentWithoutRule = false
 reportUnannotatedClassAttribute = false
 reportSelfClsParameterName = false
 reportPrivateImportUsage = false
+ignore = ["src/acp/schema.py"]
 
 [tool.mknodes]
 allowed-commit-types = [
