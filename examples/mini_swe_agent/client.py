@@ -49,6 +49,18 @@ if TYPE_CHECKING:
         RequestPermissionRequest,
         SessionNotification,
     )
+    from acp.schema import (
+        CreateTerminalRequest,
+        CreateTerminalResponse,
+        KillTerminalCommandRequest,
+        KillTerminalCommandResponse,
+        ReleaseTerminalRequest,
+        ReleaseTerminalResponse,
+        TerminalOutputRequest,
+        TerminalOutputResponse,
+        WaitForTerminalExitRequest,
+        WaitForTerminalExitResponse,
+    )
 
 
 MODE = Literal["confirm", "yolo", "human"]
@@ -254,6 +266,37 @@ class MiniSweClientImpl(Client):
 
     async def readTextFile(self, params):
         return None
+
+    async def createTerminal(
+        self, params: CreateTerminalRequest
+    ) -> CreateTerminalResponse:
+        return CreateTerminalResponse(terminal_id="0")
+
+    async def terminalOutput(
+        self, params: TerminalOutputRequest
+    ) -> TerminalOutputResponse:
+        return TerminalOutputResponse(output="", truncated=False)
+
+    async def releaseTerminal(
+        self, params: ReleaseTerminalRequest
+    ) -> ReleaseTerminalResponse | None:
+        pass
+
+    async def waitForTerminalExit(
+        self, params: WaitForTerminalExitRequest
+    ) -> WaitForTerminalExitResponse:
+        return WaitForTerminalExitResponse()
+
+    async def killTerminal(
+        self, params: KillTerminalCommandRequest
+    ) -> KillTerminalCommandResponse | None:
+        return KillTerminalCommandResponse()
+
+    async def extMethod(self, method: str, params: dict) -> dict:
+        return {}
+
+    async def extNotification(self, method: str, params: dict) -> None:
+        pass
 
 
 def _content_to_text(content) -> str:
