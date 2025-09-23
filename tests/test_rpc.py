@@ -250,7 +250,7 @@ async def test_cancel_notification_and_capture_wire():
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        # Build only agent-side (server) connection. Client side: raw reader to inspect wire
+        # Build only agent-side (server) connection. Client side: reader to inspect wire
         agent = TestAgent()
         client = TestClient()
         agent_conn = ClientSideConnection(
@@ -263,7 +263,7 @@ async def test_cancel_notification_and_capture_wire():
         # Send cancel notification from client-side connection to agent
         await agent_conn.cancel(CancelNotification(session_id="test-123"))
 
-        # Read raw line from server peer (it will be consumed by agent receive loop quickly).
+        # Read raw line from server peer (it will be consumed by agent recv loop quickly).
         # Instead, wait a brief moment and assert agent recorded it.
         for _ in range(50):
             if agent.cancellations:
@@ -289,29 +289,21 @@ async def test_session_notifications_flow():
         )
 
         # Agent -> Client notifications
+        content = ContentBlock1(type="text", text="Hello")
         await client_conn.sessionUpdate(
-            SessionNotification(
-                session_id="sess",
-                update=SessionUpdate2(
-                    content=ContentBlock1(type="text", text="Hello"),
-                ),
-            )
+            SessionNotification(session_id="sess", update=SessionUpdate2(content=content))
         )
+        content = ContentBlock1(type="text", text="World")
         await client_conn.sessionUpdate(
-            SessionNotification(
-                session_id="sess",
-                update=SessionUpdate1(
-                    content=ContentBlock1(type="text", text="World"),
-                ),
-            )
+            SessionNotification(session_id="sess", update=SessionUpdate1(content=content))
         )
 
         # Wait for async dispatch
         for _ in range(50):
-            if len(client.notifications) >= 2:
+            if len(client.notifications) >= 2:  # noqa: PLR2004
                 break
             await asyncio.sleep(0.01)
-        assert len(client.notifications) >= 2
+        assert len(client.notifications) >= 2  # noqa: PLR2004
         assert client.notifications[0].session_id == "sess"
 
 
@@ -371,7 +363,8 @@ async def test_invalid_params_results_in_error_response():
         resp = json.loads(line)
         assert resp["id"] == 1
         assert "error" in resp
-        assert resp["error"]["code"] == -32602  # invalid params
+        invalid_params_code = -32602
+        assert resp["error"]["code"] == invalid_params_code
 
 
 @pytest.mark.asyncio
@@ -392,8 +385,9 @@ async def test_method_not_found_results_in_error_response():
 
         line = await asyncio.wait_for(s.client_reader.readline(), timeout=1)
         resp = json.loads(line)
-        assert resp["id"] == 2
-        assert resp["error"]["code"] == -32601  # method not found
+        assert resp["id"] == 2  # noqa: PLR2004
+        method_not_found_code = -32601
+        assert resp["error"]["code"] == method_not_found_code
 
 
 @pytest.mark.asyncio

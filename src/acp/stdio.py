@@ -31,7 +31,9 @@ class _WritePipeProtocol(asyncio.BaseProtocol):
             await self._drain_waiter
 
 
-def _start_stdin_feeder(loop: asyncio.AbstractEventLoop, reader: asyncio.StreamReader) -> None:
+def _start_stdin_feeder(
+    loop: asyncio.AbstractEventLoop, reader: asyncio.StreamReader
+) -> None:
     # Feed stdin from a background thread line-by-line
     def blocking_read() -> None:
         try:
@@ -79,7 +81,9 @@ class _StdoutTransport(asyncio.BaseTransport):
         return default
 
 
-async def _windows_stdio_streams(loop: asyncio.AbstractEventLoop) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+async def _windows_stdio_streams(
+    loop: asyncio.AbstractEventLoop,
+) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
     reader = asyncio.StreamReader()
     _ = asyncio.StreamReaderProtocol(reader)
 
@@ -87,11 +91,15 @@ async def _windows_stdio_streams(loop: asyncio.AbstractEventLoop) -> tuple[async
 
     write_protocol = _WritePipeProtocol()
     transport = _StdoutTransport()
-    writer = asyncio.StreamWriter(cast(aio_transports.WriteTransport, transport), write_protocol, None, loop)
+    writer = asyncio.StreamWriter(
+        cast(aio_transports.WriteTransport, transport), write_protocol, None, loop
+    )
     return reader, writer
 
 
-async def _posix_stdio_streams(loop: asyncio.AbstractEventLoop) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+async def _posix_stdio_streams(
+    loop: asyncio.AbstractEventLoop,
+) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
     # Reader from stdin
     reader = asyncio.StreamReader()
     reader_protocol = asyncio.StreamReaderProtocol(reader)
@@ -105,7 +113,10 @@ async def _posix_stdio_streams(loop: asyncio.AbstractEventLoop) -> tuple[asyncio
 
 
 async def stdio_streams() -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-    """Create stdio asyncio streams; on Windows use a thread feeder + custom stdout transport."""
+    """Create stdio asyncio streams.
+
+    On Windows use a thread feeder + custom stdout transport.
+    """
     loop = asyncio.get_running_loop()
     if platform.system() == "Windows":
         return await _windows_stdio_streams(loop)
