@@ -14,22 +14,34 @@ from acp import (
     NewSessionRequest,
     PromptRequest,
 )
+from acp.schema import ContentBlock1
 
 
 if TYPE_CHECKING:
-    from acp import (
-        SessionNotification,
-    )
+    from acp import SessionNotification
 
 
 class ExampleClient(Client):
     async def sessionUpdate(self, params: SessionNotification) -> None:
         update = params.update
-        kind = getattr(update, "sessionUpdate", None) if not isinstance(update, dict) else update.get("sessionUpdate")
+        kind = (
+            getattr(update, "sessionUpdate", None)
+            if not isinstance(update, dict)
+            else update.get("sessionUpdate")
+        )
         if kind == "agent_message_chunk":
             # Handle both dict and model shapes
-            content = update["content"] if isinstance(update, dict) else getattr(update, "content", None)
-            text = content.get("text") if isinstance(content, dict) else getattr(content, "text", "<content>")
+            content = (
+                update["content"]
+                if isinstance(update, dict)
+                else getattr(update, "content", None)
+            )
+
+            text = (
+                content.get("text")
+                if isinstance(content, dict)
+                else getattr(content, "text", "<content>")
+            )
             print(f"| Agent: {text}")
 
 
@@ -43,13 +55,14 @@ async def interactive_loop(conn: ClientSideConnection, session_id: str) -> None:
         if not line:
             continue
         try:
-            await conn.prompt(PromptRequest(session_id=session_id, prompt=[{"type": "text", "text": line}]))
+            block = ContentBlock1(text=line)
+            await conn.prompt(PromptRequest(session_id=session_id, prompt=[block]))
         except Exception as e:  # noqa: BLE001
             print(f"error: {e}", file=sys.stderr)
 
 
 async def main(argv: list[str]) -> int:
-    if len(argv) < 2:
+    if len(argv) < 2:  # noqa: PLR2004
         print("Usage: python examples/client.py AGENT_PROGRAM [ARGS...]", file=sys.stderr)
         return 2
 
@@ -67,7 +80,9 @@ async def main(argv: list[str]) -> int:
     conn = ClientSideConnection(lambda _agent: ExampleClient(), proc.stdin, proc.stdout)
 
     # Initialize and create session
-    await conn.initialize(InitializeRequest(protocol_version=PROTOCOL_VERSION, client_capabilities=None))
+    await conn.initialize(
+        InitializeRequest(protocol_version=PROTOCOL_VERSION, client_capabilities=None)
+    )
     new_sess = await conn.newSession(NewSessionRequest(mcp_servers=[], cwd=os.getcwd()))
 
     # Run REPL until EOF

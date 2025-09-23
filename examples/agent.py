@@ -7,10 +7,12 @@ from acp import (
     PROTOCOL_VERSION,
     Agent,
     AgentSideConnection,
+    AuthenticateResponse,
     InitializeResponse,
     NewSessionResponse,
     PromptResponse,
     SessionNotification,
+    SetSessionModeResponse,
     stdio_streams,
 )
 from acp.schema import ContentBlock1, SessionUpdate2
@@ -19,13 +21,11 @@ from acp.schema import ContentBlock1, SessionUpdate2
 if TYPE_CHECKING:
     from acp import (
         AuthenticateRequest,
-        AuthenticateResponse,
         CancelNotification,
         InitializeRequest,
         NewSessionRequest,
         PromptRequest,
         SetSessionModeRequest,
-        SetSessionModeResponse,
     )
 
 
@@ -42,7 +42,7 @@ class ExampleAgent(Agent):
     async def authenticate(
         self, params: AuthenticateRequest
     ) -> AuthenticateResponse | None:
-        return {}
+        return AuthenticateResponse()
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
         session_id = f"sess-{self._next_session_id}"
@@ -55,7 +55,7 @@ class ExampleAgent(Agent):
     async def setSessionMode(
         self, params: SetSessionModeRequest
     ) -> SetSessionModeResponse | None:
-        return {}
+        return SetSessionModeResponse()
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         # Stream a couple of agent message chunks, then end the turn

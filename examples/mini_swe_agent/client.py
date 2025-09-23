@@ -152,11 +152,14 @@ class SmartInputContainer(Container):
             self._single_input.display = False
             self._multi_input.display = True
             self._hint_text.update(
-                "[reverse][bold][$accent] Ctrl+D [/][/][/] to submit, [reverse][bold][$accent] Tab [/][/][/] to switch focus with other controls"
+                "[reverse][bold][$accent] Ctrl+D [/][/][/] to submit, "
+                "[reverse][bold][$accent] Tab [/][/][/] to switch focus"
             )
         else:
             self._hint_text.update(
-                "[reverse][bold][$accent] Enter [/][/][/] to submit, [reverse][bold][$accent] Ctrl+T [/][/][/] to switch to multi-line input, [reverse][bold][$accent] Tab [/][/][/] to switch focus with other controls",
+                "[reverse][bold][$accent] Enter [/][/][/] to submit, "
+                "[reverse][bold][$accent] Ctrl+T [/][/][/] to switch to multiline input, "
+                "[reverse][bold][$accent] Tab [/][/][/] to switch focus",
             )
             self._multi_input.display = False
             self._single_input.display = True

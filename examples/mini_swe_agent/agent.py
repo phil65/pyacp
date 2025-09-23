@@ -46,12 +46,9 @@ if TYPE_CHECKING:
         PromptRequest,
         SetSessionModeRequest,
     )
-    from acp.schema import (
-        RequestPermissionResponse,
-    )
+    from acp.schema import RequestPermissionResponse
 
-
-# Lazily import mini-swe-agent to avoid hard dependency for users who don't need this example
+REF_SRC = Path(__file__).resolve().parents[2] / "reference" / "mini-swe-agent" / "src"
 
 
 @dataclass
@@ -88,12 +85,7 @@ def _create_streaming_mini_agent(
             from minisweagent.models.litellm_model import LitellmModel  # type: ignore
         except Exception:
             # Fallback to vendored reference copy if available
-            REF_SRC = (
-                Path(__file__).resolve().parents[2]
-                / "reference"
-                / "mini-swe-agent"
-                / "src"
-            )
+
             if REF_SRC.is_dir():
                 if str(REF_SRC) not in sys.path:
                     sys.path.insert(0, str(REF_SRC))
@@ -182,14 +174,12 @@ def _create_streaming_mini_agent(
                 status: str = "completed",
             ) -> None:
                 """Send a tool_call_update with the final output and return code."""
+                block = ContentBlock1(text=f"```ansi\n{output}\n```")
+                content = ToolCallContent1(content=block)
                 update = SessionUpdate5(
                     tool_call_id=tool_call_id,
                     status=status,
-                    content=[
-                        ToolCallContent1(
-                            content=ContentBlock1(text=f"```ansi\n{output}\n```"),
-                        )
-                    ],
+                    content=[content],
                     raw_output={"output": output, "returncode": returncode},
                 )
                 await self._send(update)
@@ -511,16 +501,14 @@ class MiniSweACPAgent(Agent):
                 cmd = self._extract_code_from_blocks(params.prompt)
                 if not cmd:
                     # Ask user to provide a command and return
-                    await self._client.sessionUpdate(
-                        SessionNotification(
-                            session_id=params.session_id,
-                            update=SessionUpdate2(
-                                content=ContentBlock1(
-                                    text="Human mode: please submit a bash command.",
-                                ),
-                            ),
-                        )
+                    content = ContentBlock1(
+                        text="Human mode: please submit a bash command."
                     )
+                    update = SessionUpdate2(content=content)
+                    notification = SessionNotification(
+                        session_id=params.session_id, update=update
+                    )
+                    await self._client.sessionUpdate(notification)
                     return PromptResponse(stop_reason="end_turn")
                 # Fabricate assistant message with the command
                 msg_content = f"\n```bash\n{cmd}\n```"
@@ -548,12 +536,11 @@ class MiniSweACPAgent(Agent):
                         " continue, or do nothing to end."
                     ),
                 )
-                await self._client.sessionUpdate(
-                    SessionNotification(
-                        session_id=params.session_id,
-                        update=SessionUpdate2(content=content),
-                    )
+                update = SessionUpdate2(content=content)
+                notification = SessionNotification(
+                    session_id=params.session_id, update=update
                 )
+                await self._client.sessionUpdate(notification)
                 # Reset task so that next prompt can set a new one
                 sess["task"] = None
         except agent._LimitsExceeded as e:  # type: ignore[misc]
