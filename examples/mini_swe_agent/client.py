@@ -53,6 +53,7 @@ if TYPE_CHECKING:
         RequestPermissionRequest,
         SessionNotification,
     )
+    from acp.core import ConfirmationMode
     from acp.schema import (
         CreateTerminalRequest,
         KillTerminalCommandRequest,
@@ -61,9 +62,6 @@ if TYPE_CHECKING:
         TerminalOutputRequest,
         WaitForTerminalExitRequest,
     )
-
-
-MODE = Literal["confirm", "yolo", "human"]
 
 
 @dataclass
@@ -365,7 +363,7 @@ class TextualMiniSweClient(App):
         except Exception:  # noqa: BLE001
             self.__class__.CSS = ""
         super().__init__()
-        self.mode: MODE = "confirm"
+        self.mode: ConfirmationMode = "confirm"
         self._vscroll = VerticalScroll()
         self.input_container = SmartInputContainer(self)
         self.messages: list[UIMessage] = []

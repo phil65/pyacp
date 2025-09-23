@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import re
 import sys
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from acp import (
@@ -46,6 +46,7 @@ if TYPE_CHECKING:
         PromptRequest,
         SetSessionModeRequest,
     )
+    from acp.core import ConfirmationMode
     from acp.schema import RequestPermissionResponse
 
 REF_SRC = Path(__file__).resolve().parents[2] / "reference" / "mini-swe-agent" / "src"
@@ -53,7 +54,7 @@ REF_SRC = Path(__file__).resolve().parents[2] / "reference" / "mini-swe-agent" /
 
 @dataclass
 class ACPAgentConfig:  # Extra controls layered on top of mini-swe-agent defaults
-    mode: Literal["confirm", "yolo", "human"] = "confirm"
+    mode: ConfirmationMode = "confirm"
     whitelist_actions: list[str] = field(default_factory=list)
     confirm_exit: bool = True
 
@@ -389,9 +390,7 @@ class MiniSweACPAgent(Agent):
             sess["config"].mode = mode  # type: ignore[attr-defined]
         return SetSessionModeResponse()
 
-    def _extract_mode_from_blocks(
-        self, blocks
-    ) -> Literal["confirm", "yolo", "human"] | None:
+    def _extract_mode_from_blocks(self, blocks) -> ConfirmationMode | None:
         for b in blocks:
             if getattr(b, "type", None) == "text":
                 t = getattr(b, "text", "") or ""

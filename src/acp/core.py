@@ -6,7 +6,7 @@ import contextlib
 from dataclasses import dataclass
 import json
 import logging
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
 
@@ -50,6 +50,7 @@ _AGENT_CONNECTION_ERROR = "AgentSideConnection requires asyncio StreamWriter/Str
 _CLIENT_CONNECTION_ERROR = (
     "ClientSideConnection requires asyncio StreamWriter/StreamReader"
 )
+ConfirmationMode = Literal["confirm", "yolo", "human"]
 
 
 class RequestError(Exception):
