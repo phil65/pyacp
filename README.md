@@ -1,96 +1,32 @@
-# Agent Client Protocol (Python)
+# PyACP
 
-A Python implementation of the Agent Client Protocol (ACP). Use it to build agents that communicate with ACP-capable clients (e.g. Zed) over stdio.
+[![PyPI License](https://img.shields.io/pypi/l/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Package status](https://img.shields.io/pypi/status/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Daily downloads](https://img.shields.io/pypi/dd/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Weekly downloads](https://img.shields.io/pypi/dw/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Monthly downloads](https://img.shields.io/pypi/dm/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Distribution format](https://img.shields.io/pypi/format/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Wheel availability](https://img.shields.io/pypi/wheel/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Python version](https://img.shields.io/pypi/pyversions/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Implementation](https://img.shields.io/pypi/implementation/pyacp.svg)](https://pypi.org/project/pyacp/)
+[![Releases](https://img.shields.io/github/downloads/phil65/pyacp/total.svg)](https://github.com/phil65/pyacp/releases)
+[![Github Contributors](https://img.shields.io/github/contributors/phil65/pyacp)](https://github.com/phil65/pyacp/graphs/contributors)
+[![Github Discussions](https://img.shields.io/github/discussions/phil65/pyacp)](https://github.com/phil65/pyacp/discussions)
+[![Github Forks](https://img.shields.io/github/forks/phil65/pyacp)](https://github.com/phil65/pyacp/forks)
+[![Github Issues](https://img.shields.io/github/issues/phil65/pyacp)](https://github.com/phil65/pyacp/issues)
+[![Github Issues](https://img.shields.io/github/issues-pr/phil65/pyacp)](https://github.com/phil65/pyacp/pulls)
+[![Github Watchers](https://img.shields.io/github/watchers/phil65/pyacp)](https://github.com/phil65/pyacp/watchers)
+[![Github Stars](https://img.shields.io/github/stars/phil65/pyacp)](https://github.com/phil65/pyacp/stars)
+[![Github Repository size](https://img.shields.io/github/repo-size/phil65/pyacp)](https://github.com/phil65/pyacp)
+[![Github last commit](https://img.shields.io/github/last-commit/phil65/pyacp)](https://github.com/phil65/pyacp/commits)
+[![Github release date](https://img.shields.io/github/release-date/phil65/pyacp)](https://github.com/phil65/pyacp/releases)
+[![Github language count](https://img.shields.io/github/languages/count/phil65/pyacp)](https://github.com/phil65/pyacp)
+[![Github commits this week](https://img.shields.io/github/commit-activity/w/phil65/pyacp)](https://github.com/phil65/pyacp)
+[![Github commits this month](https://img.shields.io/github/commit-activity/m/phil65/pyacp)](https://github.com/phil65/pyacp)
+[![Github commits this year](https://img.shields.io/github/commit-activity/y/phil65/pyacp)](https://github.com/phil65/pyacp)
+[![Package status](https://codecov.io/gh/phil65/pyacp/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/pyacp/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PyUp](https://pyup.io/repos/github/phil65/pyacp/shield.svg)](https://pyup.io/repos/github/phil65/pyacp/)
 
-- Package name: `agent-client-protocol` (import as `acp`)
-- Repository: https://github.com/psiace/agent-client-protocol-python
-- Docs: https://psiace.github.io/agent-client-protocol-python/
-- Featured: Listed as the first third-party SDK on the official ACP site — see https://agentclientprotocol.com/libraries/community
+[Read the documentation!](https://phil65.github.io/pyacp/)
 
-## Install
-
-```bash
-pip install agent-client-protocol
-# or
-uv add agent-client-protocol
-```
-
-## Development (contributors)
-
-```bash
-make install   # set up venv
-make check     # lint + typecheck
-make test      # run tests
-```
-
-## Minimal agent example
-
-See a complete streaming echo example in [examples/echo_agent.py](examples/echo_agent.py). It streams back each text block using `session/update` and ends the turn.
-
-```python
-import asyncio
-
-from acp import (
-    Agent,
-    AgentSideConnection,
-    InitializeRequest,
-    InitializeResponse,
-    NewSessionRequest,
-    NewSessionResponse,
-    PromptRequest,
-    PromptResponse,
-    SessionNotification,
-    stdio_streams,
-)
-from acp.schema import ContentBlock1, SessionUpdate2
-
-
-class EchoAgent(Agent):
-    def __init__(self, conn):
-        self._conn = conn
-
-    async def initialize(self, params: InitializeRequest) -> InitializeResponse:
-        return InitializeResponse(protocol_version=params.protocol_version)
-
-    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
-        return NewSessionResponse(session_id="sess-1")
-
-    async def prompt(self, params: PromptRequest) -> PromptResponse:
-        for block in params.prompt:
-            text = block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
-            await self._conn.sessionUpdate(
-                SessionNotification(
-                    session_id=params.session_id,
-                    update=SessionUpdate2(
-                        session_update="agent_message_chunk",
-                        content=ContentBlock1(type="text", text=text),
-                    ),
-                )
-            )
-        return PromptResponse(stop_reason="end_turn")
-
-
-async def main() -> None:
-    reader, writer = await stdio_streams()
-    AgentSideConnection(lambda conn: EchoAgent(conn), writer, reader)
-    await asyncio.Event().wait()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-Run this executable from your ACP-capable client (e.g. configure Zed to launch it). The library takes care of the stdio JSON-RPC transport.
-
-## Example: Mini SWE Agent bridge
-
-A minimal ACP bridge for mini-swe-agent is provided under [`examples/mini_swe_agent`](examples/mini_swe_agent/README.md). It demonstrates:
-
-- Parsing a prompt from ACP content blocks
-- Streaming agent output via `session/update`
-- Mapping command execution to `tool_call` and `tool_call_update`
-
-## Documentation
-
-- Quickstart: [docs/quickstart.md](docs/quickstart.md)
-- Mini SWE Agent example: [docs/mini-swe-agent.md](docs/mini-swe-agent.md)
