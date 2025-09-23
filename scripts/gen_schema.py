@@ -36,6 +36,7 @@ def main() -> None:
         "--use-double-quotes",
         "--use-union-operator",
         "--use-standard-collections",
+        "--use-schema-description",
     ]
     subprocess.check_call(cmd)  # noqa: S603
 
