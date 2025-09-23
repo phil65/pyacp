@@ -87,7 +87,12 @@ def _create_streaming_mini_agent(
             from minisweagent.models.litellm_model import LitellmModel  # type: ignore
         except Exception:
             # Fallback to vendored reference copy if available
-            REF_SRC = Path(__file__).resolve().parents[2] / "reference" / "mini-swe-agent" / "src"
+            REF_SRC = (
+                Path(__file__).resolve().parents[2]
+                / "reference"
+                / "mini-swe-agent"
+                / "src"
+            )
             if REF_SRC.is_dir():
                 if str(REF_SRC) not in sys.path:
                     sys.path.insert(0, str(REF_SRC))
@@ -150,20 +155,25 @@ def _create_streaming_mini_agent(
                 except RuntimeError:
                     self._schedule(self._send(hint))
 
-            async def on_tool_start(self, title: str, command: str, tool_call_id: str) -> None:
+            async def on_tool_start(
+                self, title: str, command: str, tool_call_id: str
+            ) -> None:
                 """Send a tool_call start notification for a bash command."""
                 update = SessionUpdate4(
                     session_update="tool_call",
-                    toolCallId=tool_call_id,
+                    tool_call_id=tool_call_id,
                     title=title,
                     kind="execute",
                     status="pending",
                     content=[
                         ToolCallContent1(
-                            type="content", content=ContentBlock1(type="text", text=f"```bash\n{command}\n```")
+                            type="content",
+                            content=ContentBlock1(
+                                type="text", text=f"```bash\n{command}\n```"
+                            ),
                         )
                     ],
-                    rawInput={"command": command},
+                    raw_input={"command": command},
                 )
                 await self._send(update)
 
@@ -178,11 +188,14 @@ def _create_streaming_mini_agent(
                 """Send a tool_call_update with the final output and return code."""
                 update = SessionUpdate5(
                     session_update="tool_call_update",
-                    toolCallId=tool_call_id,
+                    tool_call_id=tool_call_id,
                     status=status,
                     content=[
                         ToolCallContent1(
-                            type="content", content=ContentBlock1(type="text", text=f"```ansi\n{output}\n```")
+                            type="content",
+                            content=ContentBlock1(
+                                type="text", text=f"```ansi\n{output}\n```"
+                            ),
                         )
                     ],
                     rawOutput={"output": output, "returncode": returncode},
@@ -196,7 +209,9 @@ def _create_streaming_mini_agent(
                     return
                 text = str(content)
                 block = ContentBlock1(type="text", text=text)
-                update = SessionUpdate2(session_update="agent_message_chunk", content=block)
+                update = SessionUpdate2(
+                    session_update="agent_message_chunk", content=block
+                )
                 try:
                     loop = asyncio.get_running_loop()
                     loop.create_task(self._send(update))
@@ -209,21 +224,27 @@ def _create_streaming_mini_agent(
                 req = RequestPermissionRequest(
                     session_id=self._session_id,
                     options=[
-                        PermissionOption(optionId="allow-once", name="Allow once", kind="allow_once"),
-                        PermissionOption(optionId="reject-once", name="Reject", kind="reject_once"),
+                        PermissionOption(
+                            option_id="allow-once", name="Allow once", kind="allow_once"
+                        ),
+                        PermissionOption(
+                            option_id="reject-once", name="Reject", kind="reject_once"
+                        ),
                     ],
-                    toolCall=ToolCallUpdate(
-                        toolCallId=tool_call_id,
+                    tool_call=ToolCallUpdate(
+                        tool_call_id=tool_call_id,
                         title="bash",
                         kind="execute",
                         status="pending",
                         content=[
                             ToolCallContent1(
                                 type="content",
-                                content=ContentBlock1(type="text", text=f"```bash\n{command}\n```"),
+                                content=ContentBlock1(
+                                    type="text", text=f"```bash\n{command}\n```"
+                                ),
                             )
                         ],
-                        rawInput={"command": command},
+                        raw_input={"command": command},
                     ),
                 )
                 fut = self._schedule(self._acp_client.requestPermission(req))
@@ -232,7 +253,10 @@ def _create_streaming_mini_agent(
                 except Exception:
                     return False
                 out = resp.outcome
-                return bool(isinstance(out, RequestPermissionOutcome2) and out.optionId in ("allow-once", "allow-always"))
+                return bool(
+                    isinstance(out, RequestPermissionOutcome2)
+                    and out.optionId in ("allow-once", "allow-always")
+                )
 
             def execute_action(self, action: dict) -> dict:  # type: ignore[override]
                 self._tool_seq += 1
@@ -243,7 +267,9 @@ def _create_streaming_mini_agent(
                 self._schedule(self.on_tool_start("bash", command, tool_id))
 
                 # Request permission unless whitelisted
-                if command.strip() and not any(re.match(r, command) for r in self.acp_config.whitelist_actions):
+                if command.strip() and not any(
+                    re.match(r, command) for r in self.acp_config.whitelist_actions
+                ):
                     allowed = self._confirm_action_sync(tool_id, command)
                     if not allowed:
                         # Mark as cancelled/failed accordingly and abort this step
@@ -272,11 +298,17 @@ def _create_streaming_mini_agent(
                     result = super().execute_action(action)
                     output = result.get("output", "")
                     returncode = int(result.get("returncode", 0) or 0)
-                    self._schedule(self.on_tool_complete(tool_id, output, returncode, status="completed"))
+                    self._schedule(
+                        self.on_tool_complete(
+                            tool_id, output, returncode, status="completed"
+                        )
+                    )
                     return result
                 except self._Submitted as e:  # type: ignore[misc]
                     final_text = str(e)
-                    self._schedule(self.on_tool_complete(tool_id, final_text, 0, status="completed"))
+                    self._schedule(
+                        self.on_tool_complete(tool_id, final_text, 0, status="completed")
+                    )
                     raise
                 except self._NonTerminatingException as e:  # type: ignore[misc]
                     msg = str(e)
@@ -294,12 +326,19 @@ def _create_streaming_mini_agent(
                         else "failed"
                     )
                     self._schedule(
-                        self.on_tool_complete(tool_id, msg, 124 if status != "cancelled" else 0, status=status)
+                        self.on_tool_complete(
+                            tool_id,
+                            msg,
+                            124 if status != "cancelled" else 0,
+                            status=status,
+                        )
                     )
                     raise
                 except Exception as e:  # include other failures
                     msg = str(e) or "execution failed"
-                    self._schedule(self.on_tool_complete(tool_id, msg, 124, status="failed"))
+                    self._schedule(
+                        self.on_tool_complete(tool_id, msg, 124, status="failed")
+                    )
                     raise
 
         return _StreamingMiniAgent(), None
@@ -319,7 +358,9 @@ class MiniSweACPAgent(Agent):
             protocol_version=PROTOCOL_VERSION,
             agent_capabilities=AgentCapabilities(
                 load_session=True,
-                prompt_capabilities=PromptCapabilities(audio=False, image=False, embedded_context=True),
+                prompt_capabilities=PromptCapabilities(
+                    audio=False, image=False, embedded_context=True
+                ),
             ),
             auth_methods=[],
         )
@@ -361,12 +402,19 @@ class MiniSweACPAgent(Agent):
             ce = os.getenv("MINI_SWE_CONFIRM_EXIT")
             if ce is not None:
                 cfg.confirm_exit = ce.lower() not in ("0", "false", "no")
-            self._sessions[session_id] = {"cwd": cwd, "agent": None, "task": None, "config": cfg}
+            self._sessions[session_id] = {
+                "cwd": cwd,
+                "agent": None,
+                "task": None,
+                "config": cfg,
+            }
 
     async def authenticate(self, _params: AuthenticateRequest) -> None:
         return None
 
-    async def setSessionMode(self, params: SetSessionModeRequest) -> SetSessionModeResponse | None:  # type: ignore[override]
+    async def setSessionMode(
+        self, params: SetSessionModeRequest
+    ) -> SetSessionModeResponse | None:  # type: ignore[override]
         sess = self._sessions.get(params.session_id)
         if not sess:
             return SetSessionModeResponse()
@@ -375,7 +423,9 @@ class MiniSweACPAgent(Agent):
             sess["config"].mode = mode  # type: ignore[attr-defined]
         return SetSessionModeResponse()
 
-    def _extract_mode_from_blocks(self, blocks) -> Literal["confirm", "yolo", "human"] | None:
+    def _extract_mode_from_blocks(
+        self, blocks
+    ) -> Literal["confirm", "yolo", "human"] | None:
         for b in blocks:
             if getattr(b, "type", None) == "text":
                 t = getattr(b, "text", "") or ""
@@ -409,7 +459,9 @@ class MiniSweACPAgent(Agent):
         # Init or reuse agent
         agent = sess.get("agent")
         if agent is None:
-            model_name = os.getenv("MINI_SWE_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+            model_name = os.getenv(
+                "MINI_SWE_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+            )
             try:
                 import json
 
@@ -466,8 +518,12 @@ class MiniSweACPAgent(Agent):
             agent.messages = []
             # Seed templates without emitting updates
             agent._emit_updates = False  # type: ignore[attr-defined]
-            agent.add_message("system", agent.render_template(agent.config.system_template))
-            agent.add_message("user", agent.render_template(agent.config.instance_template))
+            agent.add_message(
+                "system", agent.render_template(agent.config.system_template)
+            )
+            agent.add_message(
+                "user", agent.render_template(agent.config.instance_template)
+            )
             agent._emit_updates = True  # type: ignore[attr-defined]
 
         # Decide the source of the next action
@@ -482,7 +538,10 @@ class MiniSweACPAgent(Agent):
                             session_id=params.session_id,
                             update=SessionUpdate2(
                                 session_update="agent_message_chunk",
-                                content=ContentBlock1(type="text", text="Human mode: please submit a bash command."),
+                                content=ContentBlock1(
+                                    type="text",
+                                    text="Human mode: please submit a bash command.",
+                                ),
                             ),
                         )
                     )
@@ -534,7 +593,9 @@ class MiniSweACPAgent(Agent):
                     session_id=params.session_id,
                     update=SessionUpdate2(
                         session_update="agent_message_chunk",
-                        content=ContentBlock1(type="text", text=f"Error while processing: {e}"),
+                        content=ContentBlock1(
+                            type="text", text=f"Error while processing: {e}"
+                        ),
                     ),
                 )
             )

@@ -85,7 +85,9 @@ class SmartInputContainer(Container):
         self._input_event = threading.Event()
         self._input_result: str | None = None
 
-        self._header_display = Static(id="input-header-display", classes="message-header input-request-header")
+        self._header_display = Static(
+            id="input-header-display", classes="message-header input-request-header"
+        )
         self._hint_text = Static(classes="hint-text")
         self._single_input = Input(placeholder="Type your input...")
         self._multi_input = TextArea(show_line_numbers=False, classes="multi-input")
@@ -192,7 +194,9 @@ class MiniSweClientImpl(Client):
                 self._app.enqueue_message(msg)
                 self._app.on_message_added()
             else:
-                self._app.call_from_thread(lambda: (self._app.enqueue_message(msg), self._app.on_message_added()))
+                self._app.call_from_thread(
+                    lambda: (self._app.enqueue_message(msg), self._app.on_message_added())
+                )
 
         if isinstance(upd, SessionUpdate2):
             # agent message
@@ -208,29 +212,42 @@ class MiniSweClientImpl(Client):
         elif isinstance(upd, SessionUpdate4):
             # tool call start → record structured state
             self._app._update_tool_call(
-                upd.toolCallId, title=upd.title or "", status=upd.status or "pending", content=upd.content
+                upd.toolCallId,
+                title=upd.title or "",
+                status=upd.status or "pending",
+                content=upd.content,
             )
             self._app.call_from_thread(self._app.update_content)
         elif isinstance(upd, SessionUpdate5):
             # tool call update → update structured state
-            self._app._update_tool_call(upd.toolCallId, status=upd.status, content=upd.content)
+            self._app._update_tool_call(
+                upd.toolCallId, status=upd.status, content=upd.content
+            )
             self._app.call_from_thread(self._app.update_content)
 
-    async def requestPermission(self, params: RequestPermissionRequest) -> RequestPermissionResponse:
+    async def requestPermission(
+        self, params: RequestPermissionRequest
+    ) -> RequestPermissionResponse:
         # Respect client-side mode shortcuts
         mode = self._app.mode
         if mode == "yolo":
             return RequestPermissionResponse(
-                outcome=RequestPermissionOutcome2(outcome="selected", optionId="allow-once")
+                outcome=RequestPermissionOutcome2(
+                    outcome="selected", option_id="allow-once"
+                )
             )
         # Prompt user for decision
         prompt = "Approve tool call? Press Enter to allow once, type 'n' to reject"
         ans = self._app.input_container.request_input(prompt).strip().lower()
         if ans in ("", "y", "yes"):
             return RequestPermissionResponse(
-                outcome=RequestPermissionOutcome2(outcome="selected", optionId="allow-once")
+                outcome=RequestPermissionOutcome2(
+                    outcome="selected", option_id="allow-once"
+                )
             )
-        return RequestPermissionResponse(outcome=RequestPermissionOutcome2(outcome="selected", optionId="reject-once"))
+        return RequestPermissionResponse(
+            outcome=RequestPermissionOutcome2(outcome="selected", option_id="reject-once")
+        )
 
     # Optional features not used in this example
     async def writeTextFile(self, params):
@@ -249,20 +266,40 @@ def _content_to_text(content) -> str:
 class TextualMiniSweClient(App):
     BINDINGS = [
         Binding("right,l", "next_step", "Step++", tooltip="Show next step of the agent"),
-        Binding("left,h", "previous_step", "Step--", tooltip="Show previous step of the agent"),
-        Binding("0", "first_step", "Step=0", tooltip="Show first step of the agent", show=False),
-        Binding("$", "last_step", "Step=-1", tooltip="Show last step of the agent", show=False),
+        Binding(
+            "left,h", "previous_step", "Step--", tooltip="Show previous step of the agent"
+        ),
+        Binding(
+            "0",
+            "first_step",
+            "Step=0",
+            tooltip="Show first step of the agent",
+            show=False,
+        ),
+        Binding(
+            "$", "last_step", "Step=-1", tooltip="Show last step of the agent", show=False
+        ),
         Binding("j,down", "scroll_down", "Scroll down", show=False),
         Binding("k,up", "scroll_up", "Scroll up", show=False),
         Binding("q,ctrl+q", "quit", "Quit", tooltip="Quit the agent"),
-        Binding("y,ctrl+y", "yolo", "YOLO mode", tooltip="Switch to YOLO Mode (LM actions will execute immediately)"),
+        Binding(
+            "y,ctrl+y",
+            "yolo",
+            "YOLO mode",
+            tooltip="Switch to YOLO Mode (LM actions will execute immediately)",
+        ),
         Binding(
             "c",
             "confirm",
             "CONFIRM mode",
             tooltip="Switch to Confirm Mode (LM proposes commands and you confirm/reject them)",
         ),
-        Binding("u,ctrl+u", "human", "HUMAN mode", tooltip="Switch to Human Mode (you can now type commands directly)"),
+        Binding(
+            "u,ctrl+u",
+            "human",
+            "HUMAN mode",
+            tooltip="Switch to Human Mode (you can now type commands directly)",
+        ),
         Binding("enter", "continue_step", "Next"),
         Binding("f1,question_mark", "toggle_help_panel", "Help", tooltip="Show help"),
     ]
@@ -291,7 +328,9 @@ class TextualMiniSweClient(App):
         self.input_container = SmartInputContainer(self)
         self.messages: list[UIMessage] = []
         self._spinner = Spinner("dots")
-        self.agent_state: Literal["UNINITIALIZED", "RUNNING", "AWAITING_INPUT", "STOPPED"] = "UNINITIALIZED"
+        self.agent_state: Literal[
+            "UNINITIALIZED", "RUNNING", "AWAITING_INPUT", "STOPPED"
+        ] = "UNINITIALIZED"
         self._bg_loop: asyncio.AbstractEventLoop | None = None
         self._bg_thread: threading.Thread | None = None
         self._conn: ClientSideConnection | None = None
@@ -349,8 +388,10 @@ class TextualMiniSweClient(App):
         t.start()
         self._bg_thread = t
 
-    async def _open_acp_streams_from_env(self) -> tuple[asyncio.StreamReader | None, asyncio.StreamWriter | None]:
-        """If launched via duet, open ACP streams from inherited FDs; else return (None, None)."""
+    async def _open_acp_streams_from_env(
+        self,
+    ) -> tuple[asyncio.StreamReader | None, asyncio.StreamWriter | None]:
+        """If launched via duet, open ACP streams from inherited FDs."""
         read_fd_s = os.environ.get("MSWEA_READ_FD")
         write_fd_s = os.environ.get("MSWEA_WRITE_FD")
         if not read_fd_s or not write_fd_s:
@@ -375,41 +416,52 @@ class TextualMiniSweClient(App):
         reader, writer = await self._open_acp_streams_from_env()
         if reader is None or writer is None:  # type: ignore[truthy-bool]
             # Do not fallback; inform user and stop
+            message = UIMessage(
+                "assistant",
+                "Communication endpoints not provided. Please launch via duet.py",
+            )
             self.call_from_thread(
                 lambda: (
-                    self.enqueue_message(
-                        UIMessage(
-                            "assistant",
-                            "Communication endpoints not provided. Please launch via examples/mini_swe_agent/duet.py",
-                        )
-                    ),
+                    self.enqueue_message(message),
                     self.on_message_added(),
                 )
             )
             self.agent_state = "STOPPED"
             return
 
-        self._conn = ClientSideConnection(lambda _agent: MiniSweClientImpl(self), writer, reader)
+        self._conn = ClientSideConnection(
+            lambda _agent: MiniSweClientImpl(self), writer, reader
+        )
         try:
-            resp = await self._conn.initialize(InitializeRequest(protocol_version=PROTOCOL_VERSION))
+            resp = await self._conn.initialize(
+                InitializeRequest(protocol_version=PROTOCOL_VERSION)
+            )
             self.call_from_thread(
                 lambda: (
-                    self.enqueue_message(UIMessage("assistant", f"Initialized v{resp.protocol_version}")),
+                    self.enqueue_message(
+                        UIMessage("assistant", f"Initialized v{resp.protocol_version}")
+                    ),
                     self.on_message_added(),
                 )
             )
-            new_sess = await self._conn.newSession(NewSessionRequest(mcp_servers=[], cwd=os.getcwd()))
+            new_sess = await self._conn.newSession(
+                NewSessionRequest(mcp_servers=[], cwd=os.getcwd())
+            )
             self._session_id = new_sess.session_id
             self.call_from_thread(
                 lambda: (
-                    self.enqueue_message(UIMessage("assistant", f"Session {self._session_id} created")),
+                    self.enqueue_message(
+                        UIMessage("assistant", f"Session {self._session_id} created")
+                    ),
                     self.on_message_added(),
                 )
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.call_from_thread(
                 lambda: (
-                    self.enqueue_message(UIMessage("assistant", f"ACP connect error: {e}")),
+                    self.enqueue_message(
+                        UIMessage("assistant", f"ACP connect error: {e}")
+                    ),
                     self.on_message_added(),
                 )
             )
@@ -430,8 +482,11 @@ class TextualMiniSweClient(App):
                     continue
             # Send prompt turn
             try:
-                await self._conn.prompt(PromptRequest(session_id=self._session_id, prompt=blocks))
-                # Minimal finish/new task UX: after each stopReason, if not human and idle, offer new task
+                await self._conn.prompt(
+                    PromptRequest(session_id=self._session_id, prompt=blocks)
+                )
+                # Minimal finish/new task UX: after each stopReason,
+                # if not human and idle, offer new task
                 if (
                     self.mode != "human"
                     and not self._ask_new_task_pending
@@ -450,13 +505,21 @@ class TextualMiniSweClient(App):
                         self._ask_new_task_pending = False
 
                     threading.Thread(target=_ask_new, daemon=True).start()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 # Break on connection shutdowns to stop background thread cleanly
                 msg = str(e)
-                if isinstance(e, (BrokenPipeError, ConnectionResetError)) or "Broken pipe" in msg or "closed" in msg:
+                if (
+                    isinstance(e, (BrokenPipeError, ConnectionResetError))
+                    or "Broken pipe" in msg
+                    or "closed" in msg
+                ):
                     self.agent_state = "STOPPED"
                     break
-                self.call_from_thread(lambda: self.enqueue_message(UIMessage("assistant", f"prompt error: {e}")))
+                self.call_from_thread(
+                    lambda: self.enqueue_message(
+                        UIMessage("assistant", f"prompt error: {e}")
+                    )
+                )
             # Tiny delay to avoid busy-looping
             await asyncio.sleep(0.05)
 
@@ -483,9 +546,17 @@ class TextualMiniSweClient(App):
     # --- Structured state helpers ---
 
     def _update_tool_call(
-        self, tool_id: str, *, title: str | None = None, status: str | None = None, content=None
+        self,
+        tool_id: str,
+        *,
+        title: str | None = None,
+        status: str | None = None,
+        content=None,
     ) -> None:
-        tc = self._tool_calls.get(tool_id, {"toolCallId": tool_id, "title": "", "status": "pending", "content": []})
+        tc = self._tool_calls.get(
+            tool_id,
+            {"toolCallId": tool_id, "title": "", "status": "pending", "content": []},
+        )
         if title is not None:
             tc["title"] = title
         if status is not None:
@@ -494,7 +565,10 @@ class TextualMiniSweClient(App):
             # Append any text content blocks
             texts = []
             for c in content:
-                if isinstance(c, ToolCallContent1) and getattr(c.content, "type", None) == "text":
+                if (
+                    isinstance(c, ToolCallContent1)
+                    and getattr(c.content, "type", None) == "text"
+                ):
                     texts.append(getattr(c.content, "text", ""))
             if texts:
                 tc.setdefault("content", []).append("\n".join(texts))
@@ -513,7 +587,9 @@ class TextualMiniSweClient(App):
             container.mount(message_container)
             role = m.role.replace("assistant", "mini-swe-agent").upper()
             message_container.mount(Static(role, classes="message-header"))
-            message_container.mount(Static(Text(m.content, no_wrap=False), classes="message-content"))
+            message_container.mount(
+                Static(Text(m.content, no_wrap=False), classes="message-content")
+            )
         # Render structured tool calls at the end of the page
         if self._tool_calls:
             tc_container = Vertical(classes="message-container")
@@ -530,7 +606,8 @@ class TextualMiniSweClient(App):
         if self.input_container.pending_prompt is not None:
             self.agent_state = "AWAITING_INPUT"
         self.input_container.display = (
-            self.input_container.pending_prompt is not None and self._i_step == len(items) - 1
+            self.input_container.pending_prompt is not None
+            and self._i_step == len(items) - 1
         )
         if self.input_container.display:
             self.input_container.on_focus()
@@ -588,7 +665,11 @@ class TextualMiniSweClient(App):
         def _schedule() -> None:
             with contextlib.suppress(Exception):
                 self._bg_loop.create_task(
-                    self._conn.setSessionMode(SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id))
+                    self._conn.setSessionMode(
+                        SetSessionModeRequest(
+                            session_id=self._session_id, mode_id=mode_id
+                        )
+                    )
                 )
 
         with contextlib.suppress(Exception):
