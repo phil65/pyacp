@@ -35,12 +35,15 @@ class EchoAgent(Agent):
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         for block in params.prompt:
-            text = block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
+            text = (
+                block.get("text", "")
+                if isinstance(block, dict)
+                else getattr(block, "text", "")
+            )
             await self._conn.sessionUpdate(
                 SessionNotification(
                     session_id=params.session_id,
                     update=SessionUpdate2(
-                        session_update="agent_message_chunk",
                         content=ContentBlock1(type="text", text=text),
                     ),
                 )

@@ -35,9 +35,13 @@ class ExampleAgent(Agent):
         self._next_session_id = 0
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
-        return InitializeResponse(protocol_version=PROTOCOL_VERSION, agent_capabilities=None, auth_methods=[])
+        return InitializeResponse(
+            protocol_version=PROTOCOL_VERSION, agent_capabilities=None, auth_methods=[]
+        )
 
-    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None:
+    async def authenticate(
+        self, params: AuthenticateRequest
+    ) -> AuthenticateResponse | None:
         return {}
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
@@ -48,7 +52,9 @@ class ExampleAgent(Agent):
     async def loadSession(self, params):  # type: ignore[override]
         return None
 
-    async def setSessionMode(self, params: SetSessionModeRequest) -> SetSessionModeResponse | None:
+    async def setSessionMode(
+        self, params: SetSessionModeRequest
+    ) -> SetSessionModeResponse | None:
         return {}
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
@@ -58,7 +64,6 @@ class ExampleAgent(Agent):
             SessionNotification(
                 session_id=params.session_id,
                 update=SessionUpdate2(
-                    session_update="agent_message_chunk",
                     content=ContentBlock1(type="text", text="Client sent: "),
                 ),
             )
@@ -78,7 +83,6 @@ class ExampleAgent(Agent):
                 SessionNotification(
                     session_id=params.session_id,
                     update=SessionUpdate2(
-                        session_update="agent_message_chunk",
                         content=ContentBlock1(type="text", text=text),
                     ),
                 )

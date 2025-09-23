@@ -45,7 +45,6 @@ class EchoAgent(Agent):
                 SessionNotification(
                     session_id=params.session_id,
                     update=SessionUpdate2(
-                        session_update="agent_message_chunk",
                         content=ContentBlock1(type="text", text=text),
                     ),
                 )

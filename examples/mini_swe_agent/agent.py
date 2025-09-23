@@ -143,10 +143,9 @@ def _create_streaming_mini_agent(
             def _send_cost_hint(self) -> None:
                 try:
                     cost = float(getattr(self.model, "cost", 0.0))
-                except Exception:
+                except Exception:  # noqa: BLE001
                     cost = 0.0
                 hint = SessionUpdate3(
-                    session_update="agent_thought_chunk",
                     content=ContentBlock1(type="text", text=f"__COST__:{cost:.2f}"),
                 )
                 try:
@@ -160,7 +159,6 @@ def _create_streaming_mini_agent(
             ) -> None:
                 """Send a tool_call start notification for a bash command."""
                 update = SessionUpdate4(
-                    session_update="tool_call",
                     tool_call_id=tool_call_id,
                     title=title,
                     kind="execute",
@@ -187,7 +185,6 @@ def _create_streaming_mini_agent(
             ) -> None:
                 """Send a tool_call_update with the final output and return code."""
                 update = SessionUpdate5(
-                    session_update="tool_call_update",
                     tool_call_id=tool_call_id,
                     status=status,
                     content=[
@@ -209,9 +206,7 @@ def _create_streaming_mini_agent(
                     return
                 text = str(content)
                 block = ContentBlock1(type="text", text=text)
-                update = SessionUpdate2(
-                    session_update="agent_message_chunk", content=block
-                )
+                update = SessionUpdate2(content=block)
                 try:
                     loop = asyncio.get_running_loop()
                     loop.create_task(self._send(update))
@@ -288,11 +283,7 @@ def _create_streaming_mini_agent(
                     # Mark in progress
                     self._schedule(
                         self._send(
-                            SessionUpdate5(
-                                session_update="tool_call_update",
-                                toolCallId=tool_id,
-                                status="in_progress",
-                            )
+                            SessionUpdate5(toolCallId=tool_id, status="in_progress")
                         )
                     )
                     result = super().execute_action(action)
@@ -485,7 +476,6 @@ class MiniSweACPAgent(Agent):
                     SessionNotification(
                         session_id=params.session_id,
                         update=SessionUpdate2(
-                            session_update="agent_message_chunk",
                             content=ContentBlock1(
                                 type="text",
                                 text=(
@@ -537,7 +527,6 @@ class MiniSweACPAgent(Agent):
                         SessionNotification(
                             session_id=params.session_id,
                             update=SessionUpdate2(
-                                session_update="agent_message_chunk",
                                 content=ContentBlock1(
                                     type="text",
                                     text="Human mode: please submit a bash command.",
@@ -572,7 +561,6 @@ class MiniSweACPAgent(Agent):
                     SessionNotification(
                         session_id=params.session_id,
                         update=SessionUpdate2(
-                            session_update="agent_message_chunk",
                             content=ContentBlock1(
                                 type="text",
                                 text=(
@@ -592,7 +580,6 @@ class MiniSweACPAgent(Agent):
                 SessionNotification(
                     session_id=params.session_id,
                     update=SessionUpdate2(
-                        session_update="agent_message_chunk",
                         content=ContentBlock1(
                             type="text", text=f"Error while processing: {e}"
                         ),
