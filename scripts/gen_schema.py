@@ -30,6 +30,7 @@ def main() -> None:
         "--output-model-type",
         "pydantic_v2.BaseModel",
         "--use-annotated",
+        "--use-one-literal-as-default",
     ]
     subprocess.check_call(cmd)  # noqa: S603
 
