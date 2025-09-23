@@ -41,6 +41,9 @@ dependencies = [
     # Only add below (Copier)
 ]
 
+[project.optional-dependencies]
+mini-swe-agent = ["mini-swe-agent"]
+
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
 
@@ -64,6 +67,7 @@ docs = [
     "mkdocs-material",
     # Only add below (Copier)
 ]
+
 
 [project.urls]
 Documentation = "https://phil65.github.io/pyacp/"
