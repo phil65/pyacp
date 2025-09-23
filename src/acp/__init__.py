@@ -44,6 +44,8 @@ from .schema import (
 )
 from .stdio import stdio_streams
 
+__version__ = "0.0.1"
+
 __all__ = [  # noqa: RUF022
     # constants
     "PROTOCOL_VERSION",

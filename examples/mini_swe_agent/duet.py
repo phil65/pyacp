@@ -12,13 +12,13 @@ async def main() -> None:
     agent_path = str(root / "agent.py")
     client_path = str(root / "client.py")
 
-    # Load .env into process env so children inherit it (prefer python-dotenv if available)
+    # Load .env into process env so children inherit.
     try:
         from dotenv import load_dotenv  # type: ignore
 
         # Load .env from repo root: examples/mini_swe_agent -> examples -> REPO
         load_dotenv(dotenv_path=str(root.parents[1] / ".env"), override=True)
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     base_env = os.environ.copy()
@@ -64,7 +64,9 @@ async def main() -> None:
     # If either process exits, terminate the other gracefully
     agent_task = asyncio.create_task(agent.wait())
     client_task = asyncio.create_task(client.wait())
-    done, _pending = await asyncio.wait({agent_task, client_task}, return_when=asyncio.FIRST_COMPLETED)
+    done, _pending = await asyncio.wait(
+        {agent_task, client_task}, return_when=asyncio.FIRST_COMPLETED
+    )
 
     # Terminate the peer process
     if agent_task in done and client.returncode is None:

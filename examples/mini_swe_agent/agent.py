@@ -151,16 +151,13 @@ def _create_streaming_mini_agent(
                 self, title: str, command: str, tool_call_id: str
             ) -> None:
                 """Send a tool_call start notification for a bash command."""
+                block = ContentBlock1(text=f"```bash\n{command}\n```")
                 update = SessionUpdate4(
                     tool_call_id=tool_call_id,
                     title=title,
                     kind="execute",
                     status="pending",
-                    content=[
-                        ToolCallContent1(
-                            content=ContentBlock1(text=f"```bash\n{command}\n```"),
-                        )
-                    ],
+                    content=[ToolCallContent1(content=block)],
                     raw_input={"command": command},
                 )
                 await self._send(update)
@@ -202,6 +199,7 @@ def _create_streaming_mini_agent(
 
             def _confirm_action_sync(self, tool_call_id: str, command: str) -> bool:
                 # Build request and block until client responds
+                block = ContentBlock1(text=f"```bash\n{command}\n```")
                 req = RequestPermissionRequest(
                     session_id=self._session_id,
                     options=[
@@ -217,11 +215,7 @@ def _create_streaming_mini_agent(
                         title="bash",
                         kind="execute",
                         status="pending",
-                        content=[
-                            ToolCallContent1(
-                                content=ContentBlock1(text=f"```bash\n{command}\n```"),
-                            )
-                        ],
+                        content=[ToolCallContent1(content=block)],
                         raw_input={"command": command},
                     ),
                 )
