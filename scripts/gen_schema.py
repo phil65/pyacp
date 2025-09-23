@@ -34,6 +34,7 @@ def main() -> None:
         "--enum-field-as-literal",
         "all",
         "--use-double-quotes",
+        "--use-union-operator",
     ]
     subprocess.check_call(cmd)  # noqa: S603
 
