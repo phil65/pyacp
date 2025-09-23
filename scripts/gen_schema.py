@@ -31,6 +31,8 @@ def main() -> None:
         "pydantic_v2.BaseModel",
         "--use-annotated",
         "--use-one-literal-as-default",
+        "--enum-field-as-literal",
+        "all",
     ]
     subprocess.check_call(cmd)  # noqa: S603
 
