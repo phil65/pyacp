@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass, field
 import json as _json
 import os
@@ -195,13 +196,14 @@ def _create_streaming_mini_agent(
                             ),
                         )
                     ],
-                    rawOutput={"output": output, "returncode": returncode},
+                    raw_output={"output": output, "returncode": returncode},
                 )
                 await self._send(update)
 
             def add_message(self, role: str, content: str, **kwargs):
                 super().add_message(role, content, **kwargs)
-                # Only stream LM output as agent_message_chunk; tool output is handled via tool_call_update.
+                # Only stream LM output as agent_message_chunk; tool output is handled
+                # via tool_call_update.
                 if not getattr(self, "_emit_updates", True) or role != "assistant":
                     return
                 text = str(content)
@@ -245,12 +247,12 @@ def _create_streaming_mini_agent(
                 fut = self._schedule(self._acp_client.requestPermission(req))
                 try:
                     resp: RequestPermissionResponse = fut.result()  # type: ignore[assignment]
-                except Exception:
+                except Exception:  # noqa: BLE001
                     return False
                 out = resp.outcome
                 return bool(
                     isinstance(out, RequestPermissionOutcome2)
-                    and out.optionId in ("allow-once", "allow-always")
+                    and out.option_id in ("allow-once", "allow-always")
                 )
 
             def execute_action(self, action: dict) -> dict:  # type: ignore[override]
@@ -281,11 +283,8 @@ def _create_streaming_mini_agent(
 
                 try:
                     # Mark in progress
-                    self._schedule(
-                        self._send(
-                            SessionUpdate5(toolCallId=tool_id, status="in_progress")
-                        )
-                    )
+                    update = SessionUpdate5(tool_call_id=tool_id, status="in_progress")
+                    self._schedule(self._send(update))
                     result = super().execute_action(action)
                     output = result.get("output", "")
                     returncode = int(result.get("returncode", 0) or 0)
@@ -294,7 +293,6 @@ def _create_streaming_mini_agent(
                             tool_id, output, returncode, status="completed"
                         )
                     )
-                    return result
                 except self._Submitted as e:  # type: ignore[misc]
                     final_text = str(e)
                     self._schedule(
@@ -331,9 +329,11 @@ def _create_streaming_mini_agent(
                         self.on_tool_complete(tool_id, msg, 124, status="failed")
                     )
                     raise
+                else:
+                    return result
 
         return _StreamingMiniAgent(), None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return None, f"Failed to load mini-swe-agent: {e}"
 
 
@@ -363,7 +363,7 @@ class MiniSweACPAgent(Agent):
         try:
             wl = os.getenv("MINI_SWE_WHITELIST", "[]")
             cfg.whitelist_actions = list(_json.loads(wl)) if wl else []  # type: ignore[assignment]
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
         ce = os.getenv("MINI_SWE_CONFIRM_EXIT")
         if ce is not None:
@@ -380,7 +380,7 @@ class MiniSweACPAgent(Agent):
         try:
             session_id = params.session_id  # type: ignore[attr-defined]
             cwd = params.cwd  # type: ignore[attr-defined]
-        except Exception:
+        except Exception:  # noqa: BLE001
             session_id = getattr(params, "sessionId", "sess-unknown")
             cwd = getattr(params, "cwd", os.getcwd())
         if session_id not in self._sessions:
@@ -388,7 +388,7 @@ class MiniSweACPAgent(Agent):
             try:
                 wl = os.getenv("MINI_SWE_WHITELIST", "[]")
                 cfg.whitelist_actions = list(_json.loads(wl)) if wl else []  # type: ignore[assignment]
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
             ce = os.getenv("MINI_SWE_CONFIRM_EXIT")
             if ce is not None:
@@ -409,7 +409,7 @@ class MiniSweACPAgent(Agent):
         sess = self._sessions.get(params.session_id)
         if not sess:
             return SetSessionModeResponse()
-        mode = params.modeId.lower()
+        mode = params.mode_id.lower()
         if mode in ("confirm", "yolo", "human"):
             sess["config"].mode = mode  # type: ignore[attr-defined]
         return SetSessionModeResponse()
@@ -459,7 +459,7 @@ class MiniSweACPAgent(Agent):
                 model_kwargs = json.loads(os.getenv("MINI_SWE_MODEL_KWARGS", "{}"))
                 if not isinstance(model_kwargs, dict):
                     model_kwargs = {}
-            except Exception:
+            except Exception:  # noqa: BLE001
                 model_kwargs = {}
             loop = asyncio.get_running_loop()
             agent, err = _create_streaming_mini_agent(
@@ -490,7 +490,9 @@ class MiniSweACPAgent(Agent):
                 return PromptResponse(stop_reason="end_turn")
             sess["agent"] = agent
 
-        # Mode is controlled entirely client-side via requestPermission behavior; no control blocks are parsed.
+        # Mode is controlled entirely client-side via requestPermission behavior;
+        # no control blocks are parsed.
+        assert agent
 
         # Initialize conversation on first task
         if not sess.get("task"):
@@ -543,10 +545,8 @@ class MiniSweACPAgent(Agent):
                 # Query the model in a worker thread to keep the event loop free
                 response = await asyncio.to_thread(agent.query)
                 # Send cost hint after each model call
-                try:
-                    agent._send_cost_hint()  # type: ignore[attr-defined]
-                except Exception:
-                    pass
+                with contextlib.suppress(Exception):
+                    agent._send_cost_hint()
 
             # Execute and record observation in worker thread
             await asyncio.to_thread(agent.get_observation, response)
@@ -574,7 +574,7 @@ class MiniSweACPAgent(Agent):
                 sess["task"] = None
         except agent._LimitsExceeded as e:  # type: ignore[misc]
             agent.add_message("user", f"Limits exceeded: {e}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             # Surface unexpected errors to the client to avoid silent waits
             await self._client.sessionUpdate(
                 SessionNotification(

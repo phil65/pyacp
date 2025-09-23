@@ -212,7 +212,7 @@ class MiniSweClientImpl(Client):
         elif isinstance(upd, SessionUpdate4):
             # tool call start → record structured state
             self._app._update_tool_call(
-                upd.toolCallId,
+                upd.tool_call_id,
                 title=upd.title or "",
                 status=upd.status or "pending",
                 content=upd.content,
@@ -221,7 +221,7 @@ class MiniSweClientImpl(Client):
         elif isinstance(upd, SessionUpdate5):
             # tool call update → update structured state
             self._app._update_tool_call(
-                upd.toolCallId, status=upd.status, content=upd.content
+                upd.tool_call_id, status=upd.status, content=upd.content
             )
             self._app.call_from_thread(self._app.update_content)
 
@@ -320,7 +320,7 @@ class TextualMiniSweClient(App):
         )
         try:
             self.__class__.CSS = Path(css_path).read_text()
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.__class__.CSS = ""
         super().__init__()
         self.mode: MODE = "confirm"
@@ -444,9 +444,9 @@ class TextualMiniSweClient(App):
                     self.on_message_added(),
                 )
             )
-            new_sess = await self._conn.newSession(
-                NewSessionRequest(mcp_servers=[], cwd=os.getcwd())
-            )
+            cwd = str(Path.cwd().resolve())
+            request = NewSessionRequest(mcp_servers=[], cwd=cwd)
+            new_sess = await self._conn.newSession(request)
             self._session_id = new_sess.session_id
             self.call_from_thread(
                 lambda: (
@@ -456,11 +456,12 @@ class TextualMiniSweClient(App):
                     self.on_message_added(),
                 )
             )
-        except Exception:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
+            error_msg = str(e)
             self.call_from_thread(
                 lambda: (
                     self.enqueue_message(
-                        UIMessage("assistant", f"ACP connect error: {e}")
+                        UIMessage("assistant", f"ACP connect error: {error_msg}")
                     ),
                     self.on_message_added(),
                 )
@@ -468,7 +469,8 @@ class TextualMiniSweClient(App):
             self.agent_state = "STOPPED"
             return
 
-        # Autostep loop: take queued prompts and send; if none and mode != human, keep stepping
+        # Autostep loop: take queued prompts and send;
+        # if none and mode != human, keep stepping
         while self.agent_state != "STOPPED":
             blocks: list[ContentBlock1]
             try:
@@ -507,17 +509,17 @@ class TextualMiniSweClient(App):
                     threading.Thread(target=_ask_new, daemon=True).start()
             except Exception as e:  # noqa: BLE001
                 # Break on connection shutdowns to stop background thread cleanly
-                msg = str(e)
+                error_msg = str(e)
                 if (
                     isinstance(e, (BrokenPipeError, ConnectionResetError))
-                    or "Broken pipe" in msg
-                    or "closed" in msg
+                    or "Broken pipe" in error_msg
+                    or "closed" in error_msg
                 ):
                     self.agent_state = "STOPPED"
                     break
                 self.call_from_thread(
                     lambda: self.enqueue_message(
-                        UIMessage("assistant", f"prompt error: {e}")
+                        UIMessage("assistant", f"prompt error: {error_msg}")
                     )
                 )
             # Tiny delay to avoid busy-looping
