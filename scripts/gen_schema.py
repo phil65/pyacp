@@ -37,6 +37,8 @@ def main() -> None:
         "--use-union-operator",
         "--use-standard-collections",
         "--use-schema-description",
+        "--allow-population-by-field-name",
+        "--snake-case-field",
     ]
     subprocess.check_call(cmd)  # noqa: S603
 

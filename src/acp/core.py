@@ -10,7 +10,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ValidationError
 
-from .meta import AGENT_METHODS, CLIENT_METHODS, PROTOCOL_VERSION  # noqa: F401
+from .meta import AGENT_METHODS, CLIENT_METHODS
 from .schema import (
     AuthenticateRequest,
     AuthenticateResponse,
@@ -399,7 +399,7 @@ class AgentSideConnection:
             params.model_dump(exclude_none=True, exclude_defaults=True),
         )
         create_resp = CreateTerminalResponse.model_validate(resp)
-        return TerminalHandle(create_resp.terminalId, params.sessionId, self._conn)
+        return TerminalHandle(create_resp.terminalId, params.session_id, self._conn)
 
     async def extMethod(self, method: str, params: dict) -> dict:
         return await self._conn.send_request(f"_{method}", params)

@@ -20,24 +20,24 @@ class EchoAgent(Agent):
         self._conn = conn
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
-        return InitializeResponse(protocolVersion=params.protocolVersion)
+        return InitializeResponse(protocol_version=params.protocol_version)
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
-        return NewSessionResponse(sessionId="sess-1")
+        return NewSessionResponse(session_id="sess-1")
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         for block in params.prompt:
             text = block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
             await self._conn.sessionUpdate(
                 SessionNotification(
-                    sessionId=params.sessionId,
+                    session_id=params.session_id,
                     update=SessionUpdate2(
-                        sessionUpdate="agent_message_chunk",
+                        session_update="agent_message_chunk",
                         content=ContentBlock1(type="text", text=text),
                     ),
                 )
             )
-        return PromptResponse(stopReason="end_turn")
+        return PromptResponse(stop_reason="end_turn")
 
 
 async def main() -> None:

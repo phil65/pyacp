@@ -132,10 +132,10 @@ class TestAgent(Agent):
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         # Avoid serializer warnings by omitting defaults
-        return InitializeResponse(protocolVersion=params.protocolVersion, agentCapabilities=None, authMethods=[])
+        return InitializeResponse(protocol_version=params.protocol_version, agent_capabilities=None, auth_methods=[])
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
-        return NewSessionResponse(sessionId="test-session-123")
+        return NewSessionResponse(session_id="test-session-123")
 
     async def loadSession(self, params: LoadSessionRequest) -> None:
         return None
@@ -145,10 +145,10 @@ class TestAgent(Agent):
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         self.prompts.append(params)
-        return PromptResponse(stopReason="end_turn")
+        return PromptResponse(stop_reason="end_turn")
 
     async def cancel(self, params: CancelNotification) -> None:
-        self.cancellations.append(params.sessionId)
+        self.cancellations.append(params.session_id)
 
     async def setSessionMode(self, params):
         return {}
@@ -173,12 +173,12 @@ async def test_initialize_and_new_session():
         agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
         _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
-        resp = await agent_conn.initialize(InitializeRequest(protocolVersion=1))
+        resp = await agent_conn.initialize(InitializeRequest(protocol_version=1))
         assert isinstance(resp, InitializeResponse)
-        assert resp.protocolVersion == 1
+        assert resp.protocol_version == 1
 
-        new_sess = await agent_conn.newSession(NewSessionRequest(mcpServers=[], cwd="/test"))
-        assert new_sess.sessionId == "test-session-123"
+        new_sess = await agent_conn.newSession(NewSessionRequest(mcp_servers=[], cwd="/test"))
+        assert new_sess.session_id == "test-session-123"
 
 
 @pytest.mark.asyncio
@@ -191,12 +191,12 @@ async def test_bidirectional_file_ops():
         client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         # Agent asks client to read
-        res = await client_conn.readTextFile(ReadTextFileRequest(sessionId="sess", path="/test/file.txt"))
+        res = await client_conn.readTextFile(ReadTextFileRequest(session_id="sess", path="/test/file.txt"))
         assert res.content == "Hello, World!"
 
         # Agent asks client to write
         await client_conn.writeTextFile(
-            WriteTextFileRequest(sessionId="sess", path="/test/file.txt", content="Updated")
+            WriteTextFileRequest(session_id="sess", path="/test/file.txt", content="Updated")
         )
         assert client.files["/test/file.txt"] == "Updated"
 
@@ -211,7 +211,7 @@ async def test_cancel_notification_and_capture_wire():
         _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         # Send cancel notification from client-side connection to agent
-        await agent_conn.cancel(CancelNotification(sessionId="test-123"))
+        await agent_conn.cancel(CancelNotification(session_id="test-123"))
 
         # Read raw line from server peer (it will be consumed by agent receive loop quickly).
         # Instead, wait a brief moment and assert agent recorded it.
@@ -233,18 +233,18 @@ async def test_session_notifications_flow():
         # Agent -> Client notifications
         await client_conn.sessionUpdate(
             SessionNotification(
-                sessionId="sess",
+                session_id="sess",
                 update=SessionUpdate2(
-                    sessionUpdate="agent_message_chunk",
+                    session_update="agent_message_chunk",
                     content=ContentBlock1(type="text", text="Hello"),
                 ),
             )
         )
         await client_conn.sessionUpdate(
             SessionNotification(
-                sessionId="sess",
+                session_id="sess",
                 update=SessionUpdate1(
-                    sessionUpdate="user_message_chunk",
+                    session_update="user_message_chunk",
                     content=ContentBlock1(type="text", text="World"),
                 ),
             )
@@ -256,7 +256,7 @@ async def test_session_notifications_flow():
                 break
             await asyncio.sleep(0.01)
         assert len(client.notifications) >= 2
-        assert client.notifications[0].sessionId == "sess"
+        assert client.notifications[0].session_id == "sess"
 
 
 @pytest.mark.asyncio
@@ -270,7 +270,7 @@ async def test_concurrent_reads():
         client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         async def read_one(i: int):
-            return await client_conn.readTextFile(ReadTextFileRequest(sessionId="sess", path=f"/test/file{i}.txt"))
+            return await client_conn.readTextFile(ReadTextFileRequest(session_id="sess", path=f"/test/file{i}.txt"))
 
         results = await asyncio.gather(*(read_one(i) for i in range(5)))
         for i, res in enumerate(results):
@@ -322,7 +322,7 @@ async def test_set_session_mode_and_extensions():
         _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         # setSessionMode
-        resp = await agent_conn.setSessionMode(SetSessionModeRequest(sessionId="sess", modeId="yolo"))
+        resp = await agent_conn.setSessionMode(SetSessionModeRequest(session_id="sess", mode_id="yolo"))
         # Either empty object or typed response depending on implementation
         assert resp is None or resp.__class__.__name__ == "SetSessionModeResponse"
 

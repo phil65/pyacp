@@ -5,7 +5,8 @@ import sys
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Literal
+from typing import Any, Literal
+import json as _json
 
 from acp import (
     Agent,
@@ -30,9 +31,7 @@ from acp.schema import (
     PermissionOption,
     RequestPermissionRequest,
     RequestPermissionResponse,
-    RequestPermissionOutcome1,
     RequestPermissionOutcome2,
-    SessionUpdate1,
     SessionUpdate2,
     SessionUpdate3,
     SessionUpdate4,
@@ -122,7 +121,7 @@ def _create_streaming_mini_agent(
 
             async def _send(self, update_model) -> None:
                 await self._acp_client.sessionUpdate(
-                    SessionNotification(sessionId=self._session_id, update=update_model)
+                    SessionNotification(session_id=self._session_id, update=update_model)
                 )
 
             def _send_cost_hint(self) -> None:
@@ -131,7 +130,7 @@ def _create_streaming_mini_agent(
                 except Exception:
                     cost = 0.0
                 hint = SessionUpdate3(
-                    sessionUpdate="agent_thought_chunk",
+                    session_update="agent_thought_chunk",
                     content=ContentBlock1(type="text", text=f"__COST__:{cost:.2f}"),
                 )
                 try:
@@ -143,7 +142,7 @@ def _create_streaming_mini_agent(
             async def on_tool_start(self, title: str, command: str, tool_call_id: str) -> None:
                 """Send a tool_call start notification for a bash command."""
                 update = SessionUpdate4(
-                    sessionUpdate="tool_call",
+                    session_update="tool_call",
                     toolCallId=tool_call_id,
                     title=title,
                     kind="execute",
@@ -167,7 +166,7 @@ def _create_streaming_mini_agent(
             ) -> None:
                 """Send a tool_call_update with the final output and return code."""
                 update = SessionUpdate5(
-                    sessionUpdate="tool_call_update",
+                    session_update="tool_call_update",
                     toolCallId=tool_call_id,
                     status=status,
                     content=[
@@ -186,7 +185,7 @@ def _create_streaming_mini_agent(
                     return
                 text = str(content)
                 block = ContentBlock1(type="text", text=text)
-                update = SessionUpdate2(sessionUpdate="agent_message_chunk", content=block)
+                update = SessionUpdate2(session_update="agent_message_chunk", content=block)
                 try:
                     loop = asyncio.get_running_loop()
                     loop.create_task(self._send(update))
@@ -197,7 +196,7 @@ def _create_streaming_mini_agent(
             def _confirm_action_sync(self, tool_call_id: str, command: str) -> bool:
                 # Build request and block until client responds
                 req = RequestPermissionRequest(
-                    sessionId=self._session_id,
+                    session_id=self._session_id,
                     options=[
                         PermissionOption(optionId="allow-once", name="Allow once", kind="allow_once"),
                         PermissionOption(optionId="reject-once", name="Reject", kind="reject_once"),
@@ -254,7 +253,7 @@ def _create_streaming_mini_agent(
                     self._schedule(
                         self._send(
                             SessionUpdate5(
-                                sessionUpdate="tool_call_update",
+                                session_update="tool_call_update",
                                 toolCallId=tool_id,
                                 status="in_progress",
                             )
@@ -301,18 +300,18 @@ def _create_streaming_mini_agent(
 class MiniSweACPAgent(Agent):
     def __init__(self, client: Client) -> None:
         self._client = client
-        self._sessions: Dict[str, Dict[str, Any]] = {}
+        self._sessions: dict[str, dict[str, Any]] = {}
 
     async def initialize(self, _params: InitializeRequest) -> InitializeResponse:
         from acp.schema import AgentCapabilities, PromptCapabilities
 
         return InitializeResponse(
-            protocolVersion=PROTOCOL_VERSION,
-            agentCapabilities=AgentCapabilities(
-                loadSession=True,
-                promptCapabilities=PromptCapabilities(audio=False, image=False, embeddedContext=True),
+            protocol_version=PROTOCOL_VERSION,
+            agent_capabilities=AgentCapabilities(
+                load_session=True,
+                prompt_capabilities=PromptCapabilities(audio=False, image=False, embedded_context=True),
             ),
-            authMethods=[],
+            auth_methods=[],
         )
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
@@ -320,8 +319,6 @@ class MiniSweACPAgent(Agent):
         # load config from env for whitelist & confirm_exit
         cfg = ACPAgentConfig()
         try:
-            import json as _json
-
             wl = os.getenv("MINI_SWE_WHITELIST", "[]")
             cfg.whitelist_actions = list(_json.loads(wl)) if wl else []  # type: ignore[assignment]
         except Exception:
@@ -335,11 +332,11 @@ class MiniSweACPAgent(Agent):
             "task": None,
             "config": cfg,
         }
-        return NewSessionResponse(sessionId=session_id)
+        return NewSessionResponse(session_id=session_id)
 
     async def loadSession(self, params) -> None:  # type: ignore[override]
         try:
-            session_id = params.sessionId  # type: ignore[attr-defined]
+            session_id = params.session_id  # type: ignore[attr-defined]
             cwd = params.cwd  # type: ignore[attr-defined]
         except Exception:
             session_id = getattr(params, "sessionId", "sess-unknown")
@@ -347,8 +344,6 @@ class MiniSweACPAgent(Agent):
         if session_id not in self._sessions:
             cfg = ACPAgentConfig()
             try:
-                import json as _json
-
                 wl = os.getenv("MINI_SWE_WHITELIST", "[]")
                 cfg.whitelist_actions = list(_json.loads(wl)) if wl else []  # type: ignore[assignment]
             except Exception:
@@ -363,7 +358,7 @@ class MiniSweACPAgent(Agent):
         return None
 
     async def setSessionMode(self, params: SetSessionModeRequest) -> SetSessionModeResponse | None:  # type: ignore[override]
-        sess = self._sessions.get(params.sessionId)
+        sess = self._sessions.get(params.session_id)
         if not sess:
             return SetSessionModeResponse()
         mode = params.modeId.lower()
@@ -392,15 +387,15 @@ class MiniSweACPAgent(Agent):
         return None
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
-        sess = self._sessions.get(params.sessionId)
+        sess = self._sessions.get(params.session_id)
         if not sess:
-            self._sessions[params.sessionId] = {
+            self._sessions[params.session_id] = {
                 "cwd": os.getcwd(),
                 "agent": None,
                 "task": None,
                 "config": ACPAgentConfig(),
             }
-            sess = self._sessions[params.sessionId]
+            sess = self._sessions[params.session_id]
 
         # Init or reuse agent
         agent = sess.get("agent")
@@ -417,7 +412,7 @@ class MiniSweACPAgent(Agent):
             loop = asyncio.get_running_loop()
             agent, err = _create_streaming_mini_agent(
                 client=self._client,
-                session_id=params.sessionId,
+                session_id=params.session_id,
                 cwd=sess.get("cwd") or os.getcwd(),
                 model_name=model_name,
                 model_kwargs=model_kwargs,
@@ -427,9 +422,9 @@ class MiniSweACPAgent(Agent):
             if err:
                 await self._client.sessionUpdate(
                     SessionNotification(
-                        sessionId=params.sessionId,
+                        session_id=params.session_id,
                         update=SessionUpdate2(
-                            sessionUpdate="agent_message_chunk",
+                            session_update="agent_message_chunk",
                             content=ContentBlock1(
                                 type="text",
                                 text=(
@@ -441,7 +436,7 @@ class MiniSweACPAgent(Agent):
                         ),
                     )
                 )
-                return PromptResponse(stopReason="end_turn")
+                return PromptResponse(stop_reason="end_turn")
             sess["agent"] = agent
 
         # Mode is controlled entirely client-side via requestPermission behavior; no control blocks are parsed.
@@ -475,14 +470,14 @@ class MiniSweACPAgent(Agent):
                     # Ask user to provide a command and return
                     await self._client.sessionUpdate(
                         SessionNotification(
-                            sessionId=params.sessionId,
+                            session_id=params.session_id,
                             update=SessionUpdate2(
-                                sessionUpdate="agent_message_chunk",
+                                session_update="agent_message_chunk",
                                 content=ContentBlock1(type="text", text="Human mode: please submit a bash command."),
                             ),
                         )
                     )
-                    return PromptResponse(stopReason="end_turn")
+                    return PromptResponse(stop_reason="end_turn")
                 # Fabricate assistant message with the command
                 msg_content = f"\n```bash\n{cmd}\n```"
                 agent.add_message("assistant", msg_content)
@@ -507,9 +502,9 @@ class MiniSweACPAgent(Agent):
             if sess["config"].confirm_exit:
                 await self._client.sessionUpdate(
                     SessionNotification(
-                        sessionId=params.sessionId,
+                        session_id=params.session_id,
                         update=SessionUpdate2(
-                            sessionUpdate="agent_message_chunk",
+                            session_update="agent_message_chunk",
                             content=ContentBlock1(
                                 type="text",
                                 text=(
@@ -527,15 +522,15 @@ class MiniSweACPAgent(Agent):
             # Surface unexpected errors to the client to avoid silent waits
             await self._client.sessionUpdate(
                 SessionNotification(
-                    sessionId=params.sessionId,
+                    session_id=params.session_id,
                     update=SessionUpdate2(
-                        sessionUpdate="agent_message_chunk",
+                        session_update="agent_message_chunk",
                         content=ContentBlock1(type="text", text=f"Error while processing: {e}"),
                     ),
                 )
             )
 
-        return PromptResponse(stopReason="end_turn")
+        return PromptResponse(stop_reason="end_turn")
 
     async def cancel(self, _params: CancelNotification) -> None:
         return None

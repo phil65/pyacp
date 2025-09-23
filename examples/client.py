@@ -1,7 +1,6 @@
 import asyncio
 import os
 import sys
-from typing import Optional
 
 from acp import (
     Client,
@@ -35,7 +34,7 @@ async def interactive_loop(conn: ClientSideConnection, session_id: str) -> None:
         if not line:
             continue
         try:
-            await conn.prompt(PromptRequest(sessionId=session_id, prompt=[{"type": "text", "text": line}]))
+            await conn.prompt(PromptRequest(session_id=session_id, prompt=[{"type": "text", "text": line}]))
         except Exception as e:  # noqa: BLE001
             print(f"error: {e}", file=sys.stderr)
 
@@ -58,11 +57,11 @@ async def main(argv: list[str]) -> int:
     conn = ClientSideConnection(lambda _agent: ExampleClient(), proc.stdin, proc.stdout)
 
     # Initialize and create session
-    await conn.initialize(InitializeRequest(protocolVersion=PROTOCOL_VERSION, clientCapabilities=None))
-    new_sess = await conn.newSession(NewSessionRequest(mcpServers=[], cwd=os.getcwd()))
+    await conn.initialize(InitializeRequest(protocol_version=PROTOCOL_VERSION, client_capabilities=None))
+    new_sess = await conn.newSession(NewSessionRequest(mcp_servers=[], cwd=os.getcwd()))
 
     # Run REPL until EOF
-    await interactive_loop(conn, new_sess.sessionId)
+    await interactive_loop(conn, new_sess.session_id)
 
     try:
         proc.terminate()

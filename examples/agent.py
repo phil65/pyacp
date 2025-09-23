@@ -28,7 +28,7 @@ class ExampleAgent(Agent):
         self._next_session_id = 0
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
-        return InitializeResponse(protocolVersion=PROTOCOL_VERSION, agentCapabilities=None, authMethods=[])
+        return InitializeResponse(protocol_version=PROTOCOL_VERSION, agent_capabilities=None, auth_methods=[])
 
     async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None:  # noqa: ARG002
         return {}
@@ -36,7 +36,7 @@ class ExampleAgent(Agent):
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:  # noqa: ARG002
         session_id = f"sess-{self._next_session_id}"
         self._next_session_id += 1
-        return NewSessionResponse(sessionId=session_id)
+        return NewSessionResponse(session_id=session_id)
 
     async def loadSession(self, params):  # type: ignore[override]
         return None
@@ -49,9 +49,9 @@ class ExampleAgent(Agent):
         # 1) Prefix
         await self._conn.sessionUpdate(
             SessionNotification(
-                sessionId=params.sessionId,
+                session_id=params.session_id,
                 update=SessionUpdate2(
-                    sessionUpdate="agent_message_chunk",
+                    session_update="agent_message_chunk",
                     content=ContentBlock1(type="text", text="Client sent: "),
                 ),
             )
@@ -69,14 +69,14 @@ class ExampleAgent(Agent):
                 text = getattr(block, "text", "<content>")
             await self._conn.sessionUpdate(
                 SessionNotification(
-                    sessionId=params.sessionId,
+                    session_id=params.session_id,
                     update=SessionUpdate2(
-                        sessionUpdate="agent_message_chunk",
+                        session_update="agent_message_chunk",
                         content=ContentBlock1(type="text", text=text),
                     ),
                 )
             )
-        return PromptResponse(stopReason="end_turn")
+        return PromptResponse(stop_reason="end_turn")
 
     async def cancel(self, params: CancelNotification) -> None:  # noqa: ARG002
         return None

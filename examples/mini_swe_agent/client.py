@@ -390,15 +390,15 @@ class TextualMiniSweClient(App):
 
         self._conn = ClientSideConnection(lambda _agent: MiniSweClientImpl(self), writer, reader)
         try:
-            resp = await self._conn.initialize(InitializeRequest(protocolVersion=PROTOCOL_VERSION))
+            resp = await self._conn.initialize(InitializeRequest(protocol_version=PROTOCOL_VERSION))
             self.call_from_thread(
                 lambda: (
-                    self.enqueue_message(UIMessage("assistant", f"Initialized v{resp.protocolVersion}")),
+                    self.enqueue_message(UIMessage("assistant", f"Initialized v{resp.protocol_version}")),
                     self.on_message_added(),
                 )
             )
-            new_sess = await self._conn.newSession(NewSessionRequest(mcpServers=[], cwd=os.getcwd()))
-            self._session_id = new_sess.sessionId
+            new_sess = await self._conn.newSession(NewSessionRequest(mcp_servers=[], cwd=os.getcwd()))
+            self._session_id = new_sess.session_id
             self.call_from_thread(
                 lambda: (
                     self.enqueue_message(UIMessage("assistant", f"Session {self._session_id} created")),
@@ -429,7 +429,7 @@ class TextualMiniSweClient(App):
                     continue
             # Send prompt turn
             try:
-                result = await self._conn.prompt(PromptRequest(sessionId=self._session_id, prompt=blocks))
+                result = await self._conn.prompt(PromptRequest(session_id=self._session_id, prompt=blocks))
                 # Minimal finish/new task UX: after each stopReason, if not human and idle, offer new task
                 if (
                     self.mode != "human"
@@ -589,7 +589,7 @@ class TextualMiniSweClient(App):
         def _schedule() -> None:
             try:
                 self._bg_loop.create_task(
-                    self._conn.setSessionMode(SetSessionModeRequest(sessionId=self._session_id, modeId=mode_id))
+                    self._conn.setSessionMode(SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id))
                 )
             except Exception:
                 pass
