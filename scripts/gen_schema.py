@@ -12,10 +12,7 @@ def main() -> None:
     schema_json = ROOT / "schema" / "schema.json"
     out_py = ROOT / "src" / "acp" / "schema.py"
     if not schema_json.exists():
-        print(
-            f"Schema not found at {schema_json}.",
-            file=sys.stderr,
-        )
+        print(f"Schema not found at {schema_json}.", file=sys.stderr)
         sys.exit(1)
     cmd = [
         sys.executable,
@@ -42,6 +39,7 @@ def main() -> None:
         "--use-schema-description",
         "--allow-population-by-field-name",
         "--snake-case-field",
+        "--use-generic-container-types",
     ]
     subprocess.check_call(cmd)
 
