@@ -282,15 +282,11 @@ class AgentSideConnection:
     def __init__(
         self,
         to_agent: Callable[[AgentSideConnection], Agent],
-        input_stream: Any,
-        output_stream: Any,
+        input_stream: asyncio.StreamWriter,
+        output_stream: asyncio.StreamReader,
     ) -> None:
         agent = to_agent(self)
-
         handler = self._create_agent_handler(agent)
-
-        if not isinstance(input_stream, asyncio.StreamWriter) or not isinstance(output_stream, asyncio.StreamReader):
-            raise TypeError(_AGENT_CONNECTION_ERROR)
         self._conn = Connection(handler, input_stream, output_stream)
 
     def _create_agent_handler(self, agent: Agent) -> MethodHandler:
@@ -425,12 +421,9 @@ class ClientSideConnection:
     def __init__(
         self,
         to_client: Callable[[Agent], Client],
-        input_stream: Any,
-        output_stream: Any,
+        input_stream: asyncio.StreamWriter,
+        output_stream: asyncio.StreamReader,
     ) -> None:
-        if not isinstance(input_stream, asyncio.StreamWriter) or not isinstance(output_stream, asyncio.StreamReader):
-            raise TypeError(_CLIENT_CONNECTION_ERROR)
-
         # Build client first so handler can delegate
         client = to_client(self)  # type: ignore[arg-type]
         handler = self._create_handler(client)
