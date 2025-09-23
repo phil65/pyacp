@@ -25,7 +25,7 @@ from acp import (
     SetSessionModeRequest,
     WriteTextFileRequest,
 )
-from acp.schema import ContentBlock1, SessionUpdate1, SessionUpdate2
+from acp.schema import AgentMessageChunk, TextContentBlock, UserMessageChunk
 
 
 if TYPE_CHECKING:
@@ -289,13 +289,17 @@ async def test_session_notifications_flow():
         )
 
         # Agent -> Client notifications
-        content = ContentBlock1(text="Hello")
+        content = TextContentBlock(text="Hello")
         await client_conn.sessionUpdate(
-            SessionNotification(session_id="sess", update=SessionUpdate2(content=content))
+            SessionNotification(
+                session_id="sess", update=AgentMessageChunk(content=content)
+            )
         )
-        content = ContentBlock1(text="World")
+        content = TextContentBlock(text="World")
         await client_conn.sessionUpdate(
-            SessionNotification(session_id="sess", update=SessionUpdate1(content=content))
+            SessionNotification(
+                session_id="sess", update=UserMessageChunk(content=content)
+            )
         )
 
         # Wait for async dispatch

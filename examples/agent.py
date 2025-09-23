@@ -15,7 +15,7 @@ from acp import (
     SetSessionModeResponse,
     stdio_streams,
 )
-from acp.schema import ContentBlock1, SessionUpdate2
+from acp.schema import AgentMessageChunk, TextContentBlock
 
 
 if TYPE_CHECKING:
@@ -60,7 +60,7 @@ class ExampleAgent(Agent):
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         # Stream a couple of agent message chunks, then end the turn
         # 1) Prefix
-        update = SessionUpdate2(content=ContentBlock1(text="Client sent: "))
+        update = AgentMessageChunk(content=TextContentBlock(text="Client sent: "))
         notification = SessionNotification(session_id=params.session_id, update=update)
         await self._conn.sessionUpdate(notification)
         # 2) Echo text blocks
@@ -72,9 +72,9 @@ class ExampleAgent(Agent):
                 else:
                     text = f"<{block.get('type', 'content')}>"
             else:
-                # pydantic model ContentBlock1
+                # pydantic model TextContentBlock
                 text = getattr(block, "text", "<content>")
-            update = SessionUpdate2(content=ContentBlock1(text=text))
+            update = AgentMessageChunk(content=TextContentBlock(text=text))
             await self._conn.sessionUpdate(
                 SessionNotification(session_id=params.session_id, update=update)
             )

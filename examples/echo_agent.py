@@ -12,7 +12,7 @@ from acp import (
     SessionNotification,
     stdio_streams,
 )
-from acp.schema import ContentBlock1, SessionUpdate2
+from acp.schema import AgentMessageChunk, TextContentBlock
 
 
 if TYPE_CHECKING:
@@ -43,8 +43,8 @@ class EchoAgent(Agent):
             await self._conn.sessionUpdate(
                 SessionNotification(
                     session_id=params.session_id,
-                    update=SessionUpdate2(
-                        content=ContentBlock1(text=text),
+                    update=AgentMessageChunk(
+                        content=TextContentBlock(text=text),
                     ),
                 )
             )

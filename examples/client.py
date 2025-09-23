@@ -14,7 +14,7 @@ from acp import (
     NewSessionRequest,
     PromptRequest,
 )
-from acp.schema import ContentBlock1
+from acp.schema import TextContentBlock
 
 
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ async def interactive_loop(conn: ClientSideConnection, session_id: str) -> None:
         if not line:
             continue
         try:
-            block = ContentBlock1(text=line)
+            block = TextContentBlock(text=line)
             await conn.prompt(PromptRequest(session_id=session_id, prompt=[block]))
         except Exception as e:  # noqa: BLE001
             print(f"error: {e}", file=sys.stderr)

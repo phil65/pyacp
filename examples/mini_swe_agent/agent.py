@@ -23,15 +23,15 @@ from acp import (
     stdio_streams,
 )
 from acp.schema import (
-    ContentBlock1,
+    AgentMessageChunk,
+    AgentThoughtChunk,
+    AllowedOutcome,
+    ContentToolCallContent,
     PermissionOption,
-    RequestPermissionOutcome2,
     RequestPermissionRequest,
-    SessionUpdate2,
-    SessionUpdate3,
-    SessionUpdate4,
-    SessionUpdate5,
-    ToolCallContent1,
+    TextContentBlock,
+    ToolCallProgress,
+    ToolCallStart,
     ToolCallUpdate,
 )
 
@@ -138,8 +138,8 @@ def _create_streaming_mini_agent(
                     cost = float(getattr(self.model, "cost", 0.0))
                 except Exception:  # noqa: BLE001
                     cost = 0.0
-                hint = SessionUpdate3(
-                    content=ContentBlock1(text=f"__COST__:{cost:.2f}"),
+                hint = AgentThoughtChunk(
+                    content=TextContentBlock(text=f"__COST__:{cost:.2f}"),
                 )
                 try:
                     loop = asyncio.get_running_loop()
@@ -151,13 +151,13 @@ def _create_streaming_mini_agent(
                 self, title: str, command: str, tool_call_id: str
             ) -> None:
                 """Send a tool_call start notification for a bash command."""
-                block = ContentBlock1(text=f"```bash\n{command}\n```")
-                update = SessionUpdate4(
+                block = TextContentBlock(text=f"```bash\n{command}\n```")
+                update = ToolCallStart(
                     tool_call_id=tool_call_id,
                     title=title,
                     kind="execute",
                     status="pending",
-                    content=[ToolCallContent1(content=block)],
+                    content=[ContentToolCallContent(content=block)],
                     raw_input={"command": command},
                 )
                 await self._send(update)
@@ -171,9 +171,9 @@ def _create_streaming_mini_agent(
                 status: str = "completed",
             ) -> None:
                 """Send a tool_call_update with the final output and return code."""
-                block = ContentBlock1(text=f"```ansi\n{output}\n```")
-                content = ToolCallContent1(content=block)
-                update = SessionUpdate5(
+                block = TextContentBlock(text=f"```ansi\n{output}\n```")
+                content = ContentToolCallContent(content=block)
+                update = ToolCallProgress(
                     tool_call_id=tool_call_id,
                     status=status,
                     content=[content],
@@ -188,8 +188,8 @@ def _create_streaming_mini_agent(
                 if not getattr(self, "_emit_updates", True) or role != "assistant":
                     return
                 text = str(content)
-                block = ContentBlock1(text=text)
-                update = SessionUpdate2(content=block)
+                block = TextContentBlock(text=text)
+                update = AgentMessageChunk(content=block)
                 try:
                     loop = asyncio.get_running_loop()
                     loop.create_task(self._send(update))
@@ -199,7 +199,7 @@ def _create_streaming_mini_agent(
 
             def _confirm_action_sync(self, tool_call_id: str, command: str) -> bool:
                 # Build request and block until client responds
-                block = ContentBlock1(text=f"```bash\n{command}\n```")
+                block = TextContentBlock(text=f"```bash\n{command}\n```")
                 req = RequestPermissionRequest(
                     session_id=self._session_id,
                     options=[
@@ -215,7 +215,7 @@ def _create_streaming_mini_agent(
                         title="bash",
                         kind="execute",
                         status="pending",
-                        content=[ToolCallContent1(content=block)],
+                        content=[ContentToolCallContent(content=block)],
                         raw_input={"command": command},
                     ),
                 )
@@ -226,7 +226,7 @@ def _create_streaming_mini_agent(
                     return False
                 out = resp.outcome
                 return bool(
-                    isinstance(out, RequestPermissionOutcome2)
+                    isinstance(out, AllowedOutcome)
                     and out.option_id in ("allow-once", "allow-always")
                 )
 
@@ -258,7 +258,7 @@ def _create_streaming_mini_agent(
 
                 try:
                     # Mark in progress
-                    update = SessionUpdate5(tool_call_id=tool_id, status="in_progress")
+                    update = ToolCallProgress(tool_call_id=tool_id, status="in_progress")
                     self._schedule(self._send(update))
                     result = super().execute_action(action)
                     output = result.get("output", "")
@@ -450,8 +450,8 @@ class MiniSweACPAgent(Agent):
                 await self._client.sessionUpdate(
                     SessionNotification(
                         session_id=params.session_id,
-                        update=SessionUpdate2(
-                            content=ContentBlock1(
+                        update=AgentMessageChunk(
+                            content=TextContentBlock(
                                 text=("mini-swe-agent load error: " + err),
                             ),
                         ),
@@ -495,10 +495,10 @@ class MiniSweACPAgent(Agent):
                 cmd = self._extract_code_from_blocks(params.prompt)
                 if not cmd:
                     # Ask user to provide a command and return
-                    content = ContentBlock1(
+                    content = TextContentBlock(
                         text="Human mode: please submit a bash command."
                     )
-                    update = SessionUpdate2(content=content)
+                    update = AgentMessageChunk(content=content)
                     notification = SessionNotification(
                         session_id=params.session_id, update=update
                     )
@@ -524,13 +524,13 @@ class MiniSweACPAgent(Agent):
             agent.add_message("user", final_message)
             # Ask for confirmation / new task if configured
             if sess["config"].confirm_exit:
-                content = ContentBlock1(
+                content = TextContentBlock(
                     text=(
                         "Agent finished. Type a new task in the next message to "
                         " continue, or do nothing to end."
                     ),
                 )
-                update = SessionUpdate2(content=content)
+                update = AgentMessageChunk(content=content)
                 notification = SessionNotification(
                     session_id=params.session_id, update=update
                 )
@@ -541,11 +541,11 @@ class MiniSweACPAgent(Agent):
             agent.add_message("user", f"Limits exceeded: {e}")
         except Exception as e:  # noqa: BLE001
             # Surface unexpected errors to the client to avoid silent waits
-            content = ContentBlock1(text=f"Error while processing: {e}")
+            content = TextContentBlock(text=f"Error while processing: {e}")
             await self._client.sessionUpdate(
                 SessionNotification(
                     session_id=params.session_id,
-                    update=SessionUpdate2(content=content),
+                    update=AgentMessageChunk(content=content),
                 )
             )
 
