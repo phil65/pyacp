@@ -147,7 +147,7 @@ def _create_streaming_mini_agent(
                 except Exception:  # noqa: BLE001
                     cost = 0.0
                 hint = SessionUpdate3(
-                    content=ContentBlock1(type="text", text=f"__COST__:{cost:.2f}"),
+                    content=ContentBlock1(text=f"__COST__:{cost:.2f}"),
                 )
                 try:
                     loop = asyncio.get_running_loop()
@@ -166,10 +166,7 @@ def _create_streaming_mini_agent(
                     status="pending",
                     content=[
                         ToolCallContent1(
-                            type="content",
-                            content=ContentBlock1(
-                                type="text", text=f"```bash\n{command}\n```"
-                            ),
+                            content=ContentBlock1(text=f"```bash\n{command}\n```"),
                         )
                     ],
                     raw_input={"command": command},
@@ -190,10 +187,7 @@ def _create_streaming_mini_agent(
                     status=status,
                     content=[
                         ToolCallContent1(
-                            type="content",
-                            content=ContentBlock1(
-                                type="text", text=f"```ansi\n{output}\n```"
-                            ),
+                            content=ContentBlock1(text=f"```ansi\n{output}\n```"),
                         )
                     ],
                     raw_output={"output": output, "returncode": returncode},
@@ -207,7 +201,7 @@ def _create_streaming_mini_agent(
                 if not getattr(self, "_emit_updates", True) or role != "assistant":
                     return
                 text = str(content)
-                block = ContentBlock1(type="text", text=text)
+                block = ContentBlock1(text=text)
                 update = SessionUpdate2(content=block)
                 try:
                     loop = asyncio.get_running_loop()
@@ -235,10 +229,7 @@ def _create_streaming_mini_agent(
                         status="pending",
                         content=[
                             ToolCallContent1(
-                                type="content",
-                                content=ContentBlock1(
-                                    type="text", text=f"```bash\n{command}\n```"
-                                ),
+                                content=ContentBlock1(text=f"```bash\n{command}\n```"),
                             )
                         ],
                         raw_input={"command": command},
@@ -279,7 +270,7 @@ def _create_streaming_mini_agent(
                             )
                         )
                         msg = "Command not executed: denied by user"
-                        raise self._NonTerminatingException(msg)
+                        raise self._NonTerminatingException(msg)  # noqa: TRY301
 
                 try:
                     # Mark in progress
@@ -477,12 +468,7 @@ class MiniSweACPAgent(Agent):
                         session_id=params.session_id,
                         update=SessionUpdate2(
                             content=ContentBlock1(
-                                type="text",
-                                text=(
-                                    "mini-swe-agent load error: "
-                                    + err
-                                    + "\nPlease install mini-swe-agent or its dependencies in the configured venv."
-                                ),
+                                text=("mini-swe-agent load error: " + err),
                             ),
                         ),
                     )
@@ -530,7 +516,6 @@ class MiniSweACPAgent(Agent):
                             session_id=params.session_id,
                             update=SessionUpdate2(
                                 content=ContentBlock1(
-                                    type="text",
                                     text="Human mode: please submit a bash command.",
                                 ),
                             ),
@@ -557,17 +542,16 @@ class MiniSweACPAgent(Agent):
             agent.add_message("user", final_message)
             # Ask for confirmation / new task if configured
             if sess["config"].confirm_exit:
+                content = ContentBlock1(
+                    text=(
+                        "Agent finished. Type a new task in the next message to "
+                        " continue, or do nothing to end."
+                    ),
+                )
                 await self._client.sessionUpdate(
                     SessionNotification(
                         session_id=params.session_id,
-                        update=SessionUpdate2(
-                            content=ContentBlock1(
-                                type="text",
-                                text=(
-                                    "Agent finished. Type a new task in the next message to continue, or do nothing to end."
-                                ),
-                            ),
-                        ),
+                        update=SessionUpdate2(content=content),
                     )
                 )
                 # Reset task so that next prompt can set a new one
@@ -576,14 +560,11 @@ class MiniSweACPAgent(Agent):
             agent.add_message("user", f"Limits exceeded: {e}")
         except Exception as e:  # noqa: BLE001
             # Surface unexpected errors to the client to avoid silent waits
+            content = ContentBlock1(text=f"Error while processing: {e}")
             await self._client.sessionUpdate(
                 SessionNotification(
                     session_id=params.session_id,
-                    update=SessionUpdate2(
-                        content=ContentBlock1(
-                            type="text", text=f"Error while processing: {e}"
-                        ),
-                    ),
+                    update=SessionUpdate2(content=content),
                 )
             )
 

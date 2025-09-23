@@ -289,11 +289,11 @@ async def test_session_notifications_flow():
         )
 
         # Agent -> Client notifications
-        content = ContentBlock1(type="text", text="Hello")
+        content = ContentBlock1(text="Hello")
         await client_conn.sessionUpdate(
             SessionNotification(session_id="sess", update=SessionUpdate2(content=content))
         )
-        content = ContentBlock1(type="text", text="World")
+        content = ContentBlock1(text="World")
         await client_conn.sessionUpdate(
             SessionNotification(session_id="sess", update=SessionUpdate1(content=content))
         )

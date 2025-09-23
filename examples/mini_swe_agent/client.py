@@ -8,7 +8,7 @@ from pathlib import Path
 import queue
 import threading
 import time
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 from rich.spinner import Spinner
 from rich.text import Text
@@ -264,7 +264,7 @@ def _content_to_text(content) -> str:
 
 
 class TextualMiniSweClient(App):
-    BINDINGS = [
+    BINDINGS: ClassVar = [
         Binding("right,l", "next_step", "Step++", tooltip="Show next step of the agent"),
         Binding(
             "left,h", "previous_step", "Step--", tooltip="Show previous step of the agent"
@@ -292,7 +292,7 @@ class TextualMiniSweClient(App):
             "c",
             "confirm",
             "CONFIRM mode",
-            tooltip="Switch to Confirm Mode (LM proposes commands and you confirm/reject them)",
+            tooltip="Switch to Confirm Mode (LM proposes commands, you confirm/reject)",
         ),
         Binding(
             "u,ctrl+u",
@@ -364,7 +364,7 @@ class TextualMiniSweClient(App):
 
     def _ask_initial_task(self) -> None:
         task = self.input_container.request_input("Enter your task for mini-swe-agent:")
-        blocks = [ContentBlock1(type="text", text=task)]
+        blocks = [ContentBlock1(text=task)]
         self._outbox.put(blocks)
         self._start_connection_thread()
 
@@ -501,7 +501,7 @@ class TextualMiniSweClient(App):
                             "Turn complete. Type a new task or press Enter to continue:"
                         )
                         if task.strip():
-                            self._outbox.put([ContentBlock1(type="text", text=task)])
+                            self._outbox.put([ContentBlock1(text=task)])
                         else:
                             self._outbox.put([])
                         self._ask_new_task_pending = False
@@ -529,7 +529,7 @@ class TextualMiniSweClient(App):
         if not cmd.strip():
             return
         code = f"```bash\n{cmd.strip()}\n```"
-        self._outbox.put([ContentBlock1(type="text", text=code)])
+        self._outbox.put([ContentBlock1(text=code)])
 
     # --- UI updates ---
 
@@ -666,13 +666,13 @@ class TextualMiniSweClient(App):
 
         def _schedule() -> None:
             with contextlib.suppress(Exception):
-                self._bg_loop.create_task(
-                    self._conn.setSessionMode(
-                        SetSessionModeRequest(
-                            session_id=self._session_id, mode_id=mode_id
-                        )
-                    )
+                assert self._bg_loop
+                assert self._conn
+                assert self._session_id
+                request = SetSessionModeRequest(
+                    session_id=self._session_id, mode_id=mode_id
                 )
+                self._bg_loop.create_task(self._conn.setSessionMode(request))
 
         with contextlib.suppress(Exception):
             self._bg_loop.call_soon_threadsafe(_schedule)

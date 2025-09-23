@@ -64,7 +64,7 @@ class ExampleAgent(Agent):
             SessionNotification(
                 session_id=params.session_id,
                 update=SessionUpdate2(
-                    content=ContentBlock1(type="text", text="Client sent: "),
+                    content=ContentBlock1(text="Client sent: "),
                 ),
             )
         )
@@ -83,7 +83,7 @@ class ExampleAgent(Agent):
                 SessionNotification(
                     session_id=params.session_id,
                     update=SessionUpdate2(
-                        content=ContentBlock1(type="text", text=text),
+                        content=ContentBlock1(text=text),
                     ),
                 )
             )
