@@ -60,14 +60,9 @@ class ExampleAgent(Agent):
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         # Stream a couple of agent message chunks, then end the turn
         # 1) Prefix
-        await self._conn.sessionUpdate(
-            SessionNotification(
-                session_id=params.session_id,
-                update=SessionUpdate2(
-                    content=ContentBlock1(text="Client sent: "),
-                ),
-            )
-        )
+        update = SessionUpdate2(content=ContentBlock1(text="Client sent: "))
+        notification = SessionNotification(session_id=params.session_id, update=update)
+        await self._conn.sessionUpdate(notification)
         # 2) Echo text blocks
         for block in params.prompt:
             if isinstance(block, dict):
@@ -79,13 +74,9 @@ class ExampleAgent(Agent):
             else:
                 # pydantic model ContentBlock1
                 text = getattr(block, "text", "<content>")
+            update = SessionUpdate2(content=ContentBlock1(text=text))
             await self._conn.sessionUpdate(
-                SessionNotification(
-                    session_id=params.session_id,
-                    update=SessionUpdate2(
-                        content=ContentBlock1(text=text),
-                    ),
-                )
+                SessionNotification(session_id=params.session_id, update=update)
             )
         return PromptResponse(stop_reason="end_turn")
 

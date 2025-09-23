@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import os
+from pathlib import Path
 import sys
 from typing import TYPE_CHECKING
 
@@ -80,10 +80,12 @@ async def main(argv: list[str]) -> int:
     conn = ClientSideConnection(lambda _agent: ExampleClient(), proc.stdin, proc.stdout)
 
     # Initialize and create session
-    await conn.initialize(
-        InitializeRequest(protocol_version=PROTOCOL_VERSION, client_capabilities=None)
+    init_request = InitializeRequest(
+        protocol_version=PROTOCOL_VERSION, client_capabilities=None
     )
-    new_sess = await conn.newSession(NewSessionRequest(mcp_servers=[], cwd=os.getcwd()))
+    await conn.initialize(init_request)
+    request = NewSessionRequest(mcp_servers=[], cwd=str(Path.cwd().resolve()))
+    new_sess = await conn.newSession(request)
 
     # Run REPL until EOF
     await interactive_loop(conn, new_sess.session_id)

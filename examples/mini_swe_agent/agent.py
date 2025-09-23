@@ -363,7 +363,7 @@ class MiniSweACPAgent(Agent):
             cwd = params.cwd  # type: ignore[attr-defined]
         except Exception:  # noqa: BLE001
             session_id = getattr(params, "sessionId", "sess-unknown")
-            cwd = getattr(params, "cwd", os.getcwd())
+            cwd = getattr(params, "cwd", str(Path.cwd().resolve()))
         if session_id not in self._sessions:
             cfg = ACPAgentConfig()
             try:
@@ -421,7 +421,7 @@ class MiniSweACPAgent(Agent):
         sess = self._sessions.get(params.session_id)
         if not sess:
             self._sessions[params.session_id] = {
-                "cwd": os.getcwd(),
+                "cwd": str(Path.cwd().resolve()),
                 "agent": None,
                 "task": None,
                 "config": ACPAgentConfig(),
@@ -446,7 +446,7 @@ class MiniSweACPAgent(Agent):
             agent, err = _create_streaming_mini_agent(
                 client=self._client,
                 session_id=params.session_id,
-                cwd=sess.get("cwd") or os.getcwd(),
+                cwd=sess.get("cwd") or str(Path.cwd().resolve()),
                 model_name=model_name,
                 model_kwargs=model_kwargs,
                 loop=loop,
