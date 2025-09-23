@@ -33,10 +33,14 @@ from acp.schema import (
     AgentThoughtChunk,
     AllowedOutcome,
     ContentToolCallContent,
+    CreateTerminalResponse,
+    KillTerminalCommandResponse,
+    TerminalOutputResponse,
     TextContentBlock,
     ToolCallProgress,
     ToolCallStart,
     UserMessageChunk,
+    WaitForTerminalExitResponse,
 )
 from acp.stdio import _WritePipeProtocol
 
@@ -51,15 +55,11 @@ if TYPE_CHECKING:
     )
     from acp.schema import (
         CreateTerminalRequest,
-        CreateTerminalResponse,
         KillTerminalCommandRequest,
-        KillTerminalCommandResponse,
         ReleaseTerminalRequest,
         ReleaseTerminalResponse,
         TerminalOutputRequest,
-        TerminalOutputResponse,
         WaitForTerminalExitRequest,
-        WaitForTerminalExitResponse,
     )
 
 
