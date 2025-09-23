@@ -53,6 +53,8 @@ _CLIENT_CONNECTION_ERROR = (
 
 
 class RequestError(Exception):
+    """Raised when a JSON-RPC request fails."""
+
     def __init__(self, code: int, message: str, data: Any | None = None) -> None:
         super().__init__(message)
         self.code = code
@@ -140,7 +142,8 @@ class Connection:
                 try:
                     message = json.loads(line)
                 except Exception:
-                    # Align with Rust/TS: on parse error, do not send a response; just skip
+                    # Align with Rust/TS: on parse error,
+                    # do not send a response; just skip
                     logging.exception("Error parsing JSON-RPC message")
                     continue
 
@@ -235,6 +238,8 @@ class Connection:
 
 
 class Client(Protocol):
+    """High-level client interface for interacting with an ACP server."""
+
     async def requestPermission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse: ...
@@ -275,6 +280,8 @@ class Client(Protocol):
 
 
 class Agent(Protocol):
+    """ACP Agent interface."""
+
     async def initialize(self, params: InitializeRequest) -> InitializeResponse: ...
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse: ...
@@ -300,12 +307,14 @@ class Agent(Protocol):
 
 
 class AgentSideConnection:
-    """Agent-side connection. Use when you implement the Agent and need to talk to a Client.
+    """Agent-side connection.
 
-    Parameters:
-    - to_agent: factory that receives this connection and returns your Agent implementation
-    - input: asyncio.StreamWriter (local -> peer)
-    - output: asyncio.StreamReader (peer -> local)
+    Use when you implement the Agent and need to talk to a Client.
+
+    Args:
+        to_agent: factory that receives this connection and returns your Agent
+        input: asyncio.StreamWriter (local -> peer)
+        output: asyncio.StreamReader (peer -> local)
     """
 
     def __init__(
@@ -351,11 +360,11 @@ class AgentSideConnection:
         self, agent: Agent, method: str, params: Any
     ) -> Any:
         if method == AGENT_METHODS["initialize"]:
-            p = InitializeRequest.model_validate(params)
-            return await agent.initialize(p)
+            initialize_request = InitializeRequest.model_validate(params)
+            return await agent.initialize(initialize_request)
         if method == AGENT_METHODS["session_new"]:
-            p = NewSessionRequest.model_validate(params)
-            return await agent.newSession(p)
+            new_session_request = NewSessionRequest.model_validate(params)
+            return await agent.newSession(new_session_request)
         return _NO_MATCH
 
     async def _handle_agent_session_methods(
@@ -364,22 +373,22 @@ class AgentSideConnection:
         if method == AGENT_METHODS["session_load"]:
             if not hasattr(agent, "loadSession"):
                 raise RequestError.method_not_found(method)
-            p = LoadSessionRequest.model_validate(params)
-            return await agent.loadSession(p)
+            load_request = LoadSessionRequest.model_validate(params)
+            return await agent.loadSession(load_request)
         if method == AGENT_METHODS["session_set_mode"]:
             if not hasattr(agent, "setSessionMode"):
                 raise RequestError.method_not_found(method)
-            p = SetSessionModeRequest.model_validate(params)
-            result = await agent.setSessionMode(p)
+            set_mode_request = SetSessionModeRequest.model_validate(params)
+            result = await agent.setSessionMode(set_mode_request)
             return (
                 result.model_dump() if isinstance(result, BaseModel) else (result or {})
             )
         if method == AGENT_METHODS["session_prompt"]:
-            p = PromptRequest.model_validate(params)
-            return await agent.prompt(p)
+            prompt_request = PromptRequest.model_validate(params)
+            return await agent.prompt(prompt_request)
         if method == AGENT_METHODS["session_cancel"]:
-            p = CancelNotification.model_validate(params)
-            return await agent.cancel(p)
+            cancel_notification = CancelNotification.model_validate(params)
+            return await agent.cancel(cancel_notification)
         return _NO_MATCH
 
     async def _handle_agent_auth_methods(
@@ -459,12 +468,14 @@ class AgentSideConnection:
 
 
 class ClientSideConnection:
-    """Client-side connection. Use when you implement the Client and need to talk to an Agent.
+    """Client-side connection.
 
-    Parameters:
-    - to_client: factory that receives this connection and returns your Client implementation
-    - input: asyncio.StreamWriter (local -> peer)
-    - output: asyncio.StreamReader (peer -> local)
+    Use when you implement the Client and need to talk to an Agent.
+
+    Args:
+      to_client: factory that receives this connection and returns your Client
+      input: asyncio.StreamWriter (local -> peer)
+      output: asyncio.StreamReader (peer -> local)
     """
 
     def __init__(
@@ -512,17 +523,17 @@ class ClientSideConnection:
         self, client: Client, method: str, params: Any
     ) -> Any:
         if method == CLIENT_METHODS["fs_write_text_file"]:
-            p = WriteTextFileRequest.model_validate(params)
-            return await client.writeTextFile(p)
+            write_file_request = WriteTextFileRequest.model_validate(params)
+            return await client.writeTextFile(write_file_request)
         if method == CLIENT_METHODS["fs_read_text_file"]:
-            p = ReadTextFileRequest.model_validate(params)
-            return await client.readTextFile(p)
+            read_file_request = ReadTextFileRequest.model_validate(params)
+            return await client.readTextFile(read_file_request)
         if method == CLIENT_METHODS["session_request_permission"]:
-            p = RequestPermissionRequest.model_validate(params)
-            return await client.requestPermission(p)
+            permission_request = RequestPermissionRequest.model_validate(params)
+            return await client.requestPermission(permission_request)
         if method == CLIENT_METHODS["session_update"]:
-            p = SessionNotification.model_validate(params)
-            return await client.sessionUpdate(p)
+            notification = SessionNotification.model_validate(params)
+            return await client.sessionUpdate(notification)
         return _NO_MATCH
 
     async def _handle_client_terminal_methods(
@@ -541,13 +552,13 @@ class ClientSideConnection:
     ) -> Any:
         if method == CLIENT_METHODS["terminal_create"]:
             if hasattr(client, "createTerminal"):
-                p = CreateTerminalRequest.model_validate(params)
-                return await client.createTerminal(p)
+                create_request = CreateTerminalRequest.model_validate(params)
+                return await client.createTerminal(create_request)
             return None  # TS returns null when optional method missing
         if method == CLIENT_METHODS["terminal_output"]:
             if hasattr(client, "terminalOutput"):
-                p = TerminalOutputRequest.model_validate(params)
-                return await client.terminalOutput(p)
+                output_request = TerminalOutputRequest.model_validate(params)
+                return await client.terminalOutput(output_request)
             return None
         return _NO_MATCH
 
@@ -556,8 +567,8 @@ class ClientSideConnection:
     ) -> Any:
         if method == CLIENT_METHODS["terminal_release"]:
             if hasattr(client, "releaseTerminal"):
-                p = ReleaseTerminalRequest.model_validate(params)
-                result = await client.releaseTerminal(p)
+                release_request = ReleaseTerminalRequest.model_validate(params)
+                result = await client.releaseTerminal(release_request)
                 return (
                     result.model_dump()
                     if isinstance(result, BaseModel)
@@ -566,17 +577,17 @@ class ClientSideConnection:
             return {}  # TS returns {} for void optional methods
         if method == CLIENT_METHODS["terminal_wait_for_exit"]:
             if hasattr(client, "waitForTerminalExit"):
-                p = WaitForTerminalExitRequest.model_validate(params)
-                return await client.waitForTerminalExit(p)
+                wait_request = WaitForTerminalExitRequest.model_validate(params)
+                return await client.waitForTerminalExit(wait_request)
             return None
         if method == CLIENT_METHODS["terminal_kill"]:
             if hasattr(client, "killTerminal"):
-                p = KillTerminalCommandRequest.model_validate(params)
-                result = await client.killTerminal(p)
+                kill_request = KillTerminalCommandRequest.model_validate(params)
+                kill_result = await client.killTerminal(kill_request)
                 return (
-                    result.model_dump()
-                    if isinstance(result, BaseModel)
-                    else (result or {})
+                    kill_result.model_dump()
+                    if isinstance(kill_result, BaseModel)
+                    else (kill_result or {})
                 )
             return {}  # TS returns {} for void optional methods
         return _NO_MATCH
@@ -663,6 +674,8 @@ class ClientSideConnection:
 
 
 class TerminalHandle:
+    """Handle for a terminal session."""
+
     def __init__(self, terminal_id: str, session_id: str, conn: Connection) -> None:
         self.id = terminal_id
         self._session_id = session_id

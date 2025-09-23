@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,7 +12,10 @@ def main() -> None:
     schema_json = ROOT / "schema" / "schema.json"
     out_py = ROOT / "src" / "acp" / "schema.py"
     if not schema_json.exists():
-        print(f"Schema not found at {schema_json}. Run 'npm run generate:json-schema' first.", file=sys.stderr)
+        print(
+            f"Schema not found at {schema_json}.",
+            file=sys.stderr,
+        )
         sys.exit(1)
     cmd = [
         sys.executable,
