@@ -224,7 +224,9 @@ combine-as-imports = true
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "I001"]
 "scripts/*" = ["INP001"]
-
+"src/acp/core.py" = ["N802"]  # ACP protocol requires camelCase method names
+"tests/test_rpc.py" = ["N802"]
+"examples/**/*.py" = ["N802"]
 [tool.ty.environment]
 python-version = "3.12"
 
