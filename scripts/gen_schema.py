@@ -33,6 +33,7 @@ def main() -> None:
         "--use-one-literal-as-default",
         "--enum-field-as-literal",
         "all",
+        "--use-double-quotes",
     ]
     subprocess.check_call(cmd)  # noqa: S603
 
