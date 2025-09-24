@@ -558,8 +558,8 @@ class TextualMiniSweClient(App):
                     self.agent_state = "STOPPED"
                     break
                 self.call_from_thread(
-                    lambda: self.enqueue_message(
-                        UIMessage("assistant", f"prompt error: {error_msg}")
+                    lambda msg=error_msg: self.enqueue_message(
+                        UIMessage("assistant", f"prompt error: {msg}")
                     )
                 )
             # Tiny delay to avoid busy-looping
@@ -656,7 +656,7 @@ class TextualMiniSweClient(App):
         self.refresh()
 
     def _update_headers(self) -> None:
-        status_text = self.agent_state
+        status_text: str = self.agent_state
         if self.agent_state == "RUNNING":
             spinner_frame = str(self._spinner.render(time.time())).strip()
             status_text = f"{self.agent_state} {spinner_frame}"
