@@ -110,6 +110,7 @@ def _create_streaming_mini_agent(
                 self._session_id = session_id
                 self._tool_seq = 0
                 self._loop = loop
+                self._background_tasks: set = set()
                 # expose mini-swe-agent exception types for outer loop
                 self._Submitted = Submitted
                 self._NonTerminatingException = NonTerminatingException
@@ -144,7 +145,10 @@ def _create_streaming_mini_agent(
                 )
                 try:
                     loop = asyncio.get_running_loop()
-                    loop.create_task(self._send(hint))
+                    task = loop.create_task(self._send(hint))
+                    # Store reference to prevent garbage collection
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
                 except RuntimeError:
                     self._schedule(self._send(hint))
 
@@ -193,7 +197,10 @@ def _create_streaming_mini_agent(
                 update = AgentMessageChunk(content=block)
                 try:
                     loop = asyncio.get_running_loop()
-                    loop.create_task(self._send(update))
+                    task = loop.create_task(self._send(update))
+                    # Store reference to prevent garbage collection
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
                 except RuntimeError:
                     self._schedule(self._send(update))
                 # Fire-and-forget

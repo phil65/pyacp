@@ -605,13 +605,12 @@ class TextualMiniSweClient(App):
             tc["status"] = status
         if content:
             # Append any text content blocks
-            texts = []
-            for c in content:
-                if (
-                    isinstance(c, ContentToolCallContent)
-                    and getattr(c.content, "type", None) == "text"
-                ):
-                    texts.append(getattr(c.content, "text", ""))
+            texts = [
+                getattr(c.content, "text", "")
+                for c in content
+                if isinstance(c, ContentToolCallContent)
+                and getattr(c.content, "type", None) == "text"
+            ]
             if texts:
                 tc.setdefault("content", []).append("\n".join(texts))
         self._tool_calls[tool_id] = tc
