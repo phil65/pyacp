@@ -461,12 +461,7 @@ class TextualMiniSweClient(App):
                 "assistant",
                 "Communication endpoints not provided. Please launch via duet.py",
             )
-            self.call_from_thread(
-                lambda: (
-                    self.enqueue_message(message),
-                    self.on_message_added(),
-                )
-            )
+            self._post_message_from_thread("assistant", message.content)
             self.agent_state = "STOPPED"
             return
 
@@ -476,36 +471,19 @@ class TextualMiniSweClient(App):
         try:
             request = InitializeRequest(protocol_version=PROTOCOL_VERSION)
             resp = await self._conn.initialize(request)
-            self.call_from_thread(
-                lambda: (
-                    self.enqueue_message(
-                        UIMessage("assistant", f"Initialized v{resp.protocol_version}")
-                    ),
-                    self.on_message_added(),
-                )
+            self._post_message_from_thread(
+                "assistant", f"Initialized v{resp.protocol_version}"
             )
             cwd = str(Path.cwd().resolve())
             request = NewSessionRequest(mcp_servers=[], cwd=cwd)
             new_sess = await self._conn.newSession(request)
             self._session_id = new_sess.session_id
-            self.call_from_thread(
-                lambda: (
-                    self.enqueue_message(
-                        UIMessage("assistant", f"Session {self._session_id} created")
-                    ),
-                    self.on_message_added(),
-                )
+            self._post_message_from_thread(
+                "assistant", f"Session {self._session_id} created"
             )
         except Exception as e:  # noqa: BLE001
             error_msg = str(e)
-            self.call_from_thread(
-                lambda: (
-                    self.enqueue_message(
-                        UIMessage("assistant", f"ACP connect error: {error_msg}")
-                    ),
-                    self.on_message_added(),
-                )
-            )
+            self._post_message_from_thread("assistant", f"ACP connect error: {error_msg}")
             self.agent_state = "STOPPED"
             return
 
@@ -537,9 +515,8 @@ class TextualMiniSweClient(App):
                     self._ask_new_task_pending = True
 
                     def _ask_new():
-                        task = self.input_container.request_input(
-                            "Turn complete. Type a new task or press Enter to continue:"
-                        )
+                        msg = "Turn complete. Type a new task or press Enter to continue:"
+                        task = self.input_container.request_input(msg)
                         if task.strip():
                             self._outbox.put([TextContentBlock(text=task)])
                         else:
@@ -557,11 +534,7 @@ class TextualMiniSweClient(App):
                 ):
                     self.agent_state = "STOPPED"
                     break
-                self.call_from_thread(
-                    lambda msg=error_msg: self.enqueue_message(
-                        UIMessage("assistant", f"prompt error: {msg}")
-                    )
-                )
+                self._post_message_from_thread("assistant", f"prompt error: {error_msg}")
             # Tiny delay to avoid busy-looping
             await asyncio.sleep(0.05)
 
@@ -584,6 +557,15 @@ class TextualMiniSweClient(App):
         self.update_content()
         if auto_follow:
             self.action_last_step()
+
+    def _post_message_from_thread(self, role: str, message: str) -> None:
+        """Helper to post a message from a background thread."""
+        self.call_from_thread(
+            lambda: (
+                self.enqueue_message(UIMessage(role, message)),
+                self.on_message_added(),
+            )
+        )
 
     # --- Structured state helpers ---
 
