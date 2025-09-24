@@ -14,7 +14,7 @@ async def main() -> None:
 
     # Load .env into process env so children inherit.
     try:
-        from dotenv import load_dotenv  # type: ignore
+        from dotenv import load_dotenv
 
         # Load .env from repo root: examples/mini_swe_agent -> examples -> REPO
         load_dotenv(dotenv_path=str(root.parents[1] / ".env"), override=True)

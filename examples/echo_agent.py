@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class EchoAgent(Agent):
-    def __init__(self, conn):
+    def __init__(self, conn: AgentSideConnection):
         self._conn = conn
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
