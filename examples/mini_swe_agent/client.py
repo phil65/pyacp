@@ -8,7 +8,7 @@ from pathlib import Path
 import queue
 import threading
 import time
-from typing import TYPE_CHECKING, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from rich.spinner import Spinner
 from rich.text import Text
@@ -229,13 +229,15 @@ class MiniSweClientImpl(Client):
                     upd.tool_call_id,
                     title=upd.title or "",
                     status=upd.status or "pending",
-                    content=upd.content,
+                    content=list(upd.content) if upd.content else None,
                 )
                 self._app.call_from_thread(self._app.update_content)
             case ToolCallProgress():
                 # tool call update → update structured state
                 self._app._update_tool_call(
-                    upd.tool_call_id, status=upd.status, content=upd.content
+                    upd.tool_call_id,
+                    status=upd.status,
+                    content=list(upd.content) if upd.content else None,
                 )
                 self._app.call_from_thread(self._app.update_content)
 
@@ -245,19 +247,16 @@ class MiniSweClientImpl(Client):
         # Respect client-side mode shortcuts
         mode = self._app.mode
         if mode == "yolo":
-            return RequestPermissionResponse(
-                outcome=AllowedOutcome(outcome="selected", option_id="allow-once")
-            )
+            allowed = AllowedOutcome(outcome="selected", option_id="allow-once")
+            return RequestPermissionResponse(outcome=allowed)
         # Prompt user for decision
         prompt = "Approve tool call? Press Enter to allow once, type 'n' to reject"
         ans = self._app.input_container.request_input(prompt).strip().lower()
         if ans in ("", "y", "yes"):
-            return RequestPermissionResponse(
-                outcome=AllowedOutcome(outcome="selected", option_id="allow-once")
-            )
-        return RequestPermissionResponse(
-            outcome=AllowedOutcome(outcome="selected", option_id="reject-once")
-        )
+            allowed = AllowedOutcome(outcome="selected", option_id="allow-once")
+            return RequestPermissionResponse(outcome=allowed)
+        denied = AllowedOutcome(outcome="selected", option_id="reject-once")
+        return RequestPermissionResponse(outcome=denied)
 
     # Optional features not used in this example
     async def writeTextFile(self, params):
@@ -575,11 +574,12 @@ class TextualMiniSweClient(App):
         *,
         title: str | None = None,
         status: str | None = None,
-        content=None,
+        content: list[Any] | None = None,
     ) -> None:
+        dct = {"tool_call_id": tool_id, "title": "", "status": "pending", "content": []}
         tc = self._tool_calls.get(
             tool_id,
-            {"toolCallId": tool_id, "title": "", "status": "pending", "content": []},
+            dct,
         )
         if title is not None:
             tc["title"] = title
@@ -590,8 +590,7 @@ class TextualMiniSweClient(App):
             texts = [
                 getattr(c.content, "text", "")
                 for c in content
-                if isinstance(c, ContentToolCallContent)
-                and getattr(c.content, "type", None) == "text"
+                if isinstance(c, ContentToolCallContent) and c.content.type == "text"
             ]
             if texts:
                 tc.setdefault("content", []).append("\n".join(texts))
