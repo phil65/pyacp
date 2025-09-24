@@ -1,4 +1,5 @@
-# This file is generated from https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/meta.json. Do not edit by hand.
+# This file is generated from https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/meta.json.
+# Do not edit by hand.
 AGENT_METHODS = {
     "authenticate": "authenticate",
     "initialize": "initialize",
