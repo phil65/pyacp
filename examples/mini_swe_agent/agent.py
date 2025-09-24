@@ -492,7 +492,7 @@ class MiniSweACPAgent(Agent):
             agent.add_message(
                 "user", agent.render_template(agent.config.instance_template)
             )
-            agent._emit_updates = True  # type: ignore[attr-defined]
+            agent._emit_updates = True
 
         # Decide the source of the next action
         try:
@@ -525,7 +525,7 @@ class MiniSweACPAgent(Agent):
             await asyncio.to_thread(agent.get_observation, response)
         except agent._NonTerminatingException as e:  # type: ignore[misc]
             agent.add_message("user", str(e))
-        except agent._Submitted as e:  # type: ignore[misc]
+        except agent._Submitted as e:
             final_message = str(e)
             agent.add_message("user", final_message)
             # Ask for confirmation / new task if configured
@@ -543,7 +543,7 @@ class MiniSweACPAgent(Agent):
                 await self._client.sessionUpdate(notification)
                 # Reset task so that next prompt can set a new one
                 sess["task"] = None
-        except agent._LimitsExceeded as e:  # type: ignore[misc]
+        except agent._LimitsExceeded as e:
             agent.add_message("user", f"Limits exceeded: {e}")
         except Exception as e:  # noqa: BLE001
             # Surface unexpected errors to the client to avoid silent waits
