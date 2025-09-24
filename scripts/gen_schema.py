@@ -1,56 +1,108 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
+import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
+SCHEMA_URL = "https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/schema.json"
+META_URL = "https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/meta.json"
+
+
+def fetch_json(url: str) -> dict:
+    """Fetch JSON data from a URL."""
+    try:
+        with urllib.request.urlopen(url) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        print(f"Failed to fetch {url}: {e}", file=sys.stderr)
+        sys.exit(1)
+
 
 def main() -> None:
-    schema_json = ROOT / "schema" / "schema.json"
-    out_py = ROOT / "src" / "acp" / "schema.py"
-    if not schema_json.exists():
-        print(f"Schema not found at {schema_json}.", file=sys.stderr)
-        sys.exit(1)
-    cmd = [
-        sys.executable,
-        "-m",
-        "datamodel_code_generator",
-        "--input",
-        str(schema_json),
-        "--input-file-type",
-        "jsonschema",
-        "--output",
-        str(out_py),
-        "--target-python-version",
-        "3.12",
-        "--collapse-root-models",
-        "--output-model-type",
-        "pydantic_v2.BaseModel",
-        "--use-annotated",
-        "--use-one-literal-as-default",
-        "--enum-field-as-literal",
-        "all",
-        "--use-double-quotes",
-        "--use-union-operator",
-        "--use-standard-collections",
-        "--use-schema-description",
-        "--allow-population-by-field-name",
-        "--snake-case-field",
-        "--use-generic-container-types",
-    ]
-    subprocess.check_call(cmd)
+    # Generate schema.py
+    schema_out = ROOT / "src" / "acp" / "schema.py"
 
-    # Post-process to rename numbered classes
-    _rename_numbered_classes(out_py)
+    # Create a temporary file for the schema JSON
+    temp_dir = Path(tempfile.gettempdir())
+    temp_schema_path = temp_dir / "schema.json"
+    schema_data = fetch_json(SCHEMA_URL)
+    temp_schema_path.write_text(json.dumps(schema_data, indent=2))
+
+    try:
+        cmd = [
+            sys.executable,
+            "-m",
+            "datamodel_code_generator",
+            "--input",
+            temp_schema_path,
+            "--input-file-type",
+            "jsonschema",
+            "--output",
+            str(schema_out),
+            "--target-python-version",
+            "3.12",
+            "--collapse-root-models",
+            "--output-model-type",
+            "pydantic_v2.BaseModel",
+            "--use-annotated",
+            "--use-one-literal-as-default",
+            "--enum-field-as-literal",
+            "all",
+            "--use-double-quotes",
+            "--use-union-operator",
+            "--use-standard-collections",
+            "--use-schema-description",
+            "--allow-population-by-field-name",
+            "--snake-case-field",
+            "--use-generic-container-types",
+        ]
+        subprocess.check_call(cmd)
+
+        # Post-process to rename numbered classes
+        _rename_numbered_classes(schema_out)
+    finally:
+        # Clean up temporary file
+        temp_schema_path.unlink(missing_ok=True)
+
+    # Generate meta.py
+    meta_out = ROOT / "src" / "acp" / "meta.py"
+    meta_data = fetch_json(META_URL)
+    agent_methods = meta_data.get("agentMethods", {})
+    client_methods = meta_data.get("clientMethods", {})
+    version = meta_data.get("version", 1)
+
+    meta_out.write_text(
+        f"# This file is generated from {META_URL}. Do not edit by hand.\n"
+        f"AGENT_METHODS = {agent_methods!r}\n"
+        f"CLIENT_METHODS = {client_methods!r}\n"
+        f"PROTOCOL_VERSION = {int(version)}\n"
+    )
+
+    # Format generated files with ruff
+    _format_with_ruff(schema_out)
+    _format_with_ruff(meta_out)
+
+
+def _format_with_ruff(file_path: Path) -> None:
+    """Format a Python file with ruff."""
+    try:
+        cmd = ["uv", "run", "ruff", "format", str(file_path)]
+        subprocess.check_call(cmd)
+        print(f"Formatted {file_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Failed to format {file_path}: {e}", file=sys.stderr)
 
 
 def _rename_numbered_classes(file_path: Path) -> None:
     """Rename numbered classes to more meaningful names."""
     rename_map = {
-        # ename the numbered ones that don't have proper names
+        # Rename the numbered ones that don't have proper names
         "SessionUpdate1": "UserMessageChunk",
         "SessionUpdate2": "AgentMessageChunk",
         "SessionUpdate3": "AgentThoughtChunk",
