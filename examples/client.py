@@ -77,7 +77,7 @@ async def main(argv: list[str]) -> int:
     assert proc.stdout
 
     # Connect to agent stdio
-    conn = ClientSideConnection(lambda _agent: ExampleClient(), proc.stdin, proc.stdout)
+    conn = ClientSideConnection(lambda _agent: ExampleClient(), proc.stdin, proc.stdout)  # pyright: ignore[reportAbstractUsage]
 
     # Initialize and create session
     init_request = InitializeRequest(
