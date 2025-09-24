@@ -211,32 +211,33 @@ class MiniSweClientImpl(Client):
                     lambda: (self._app.enqueue_message(msg), self._app.on_message_added())
                 )
 
-        if isinstance(upd, AgentMessageChunk):
-            # agent message
-            txt = _content_to_text(upd.content)
-            _post(UIMessage("assistant", txt))
-        elif isinstance(upd, UserMessageChunk):
-            txt = _content_to_text(upd.content)
-            _post(UIMessage("user", txt))
-        elif isinstance(upd, AgentThoughtChunk):
-            # agent thought chunk (informational)
-            txt = _content_to_text(upd.content)
-            _post(UIMessage("assistant", f"[thought]\n{txt}"))
-        elif isinstance(upd, ToolCallStart):
-            # tool call start → record structured state
-            self._app._update_tool_call(
-                upd.tool_call_id,
-                title=upd.title or "",
-                status=upd.status or "pending",
-                content=upd.content,
-            )
-            self._app.call_from_thread(self._app.update_content)
-        elif isinstance(upd, ToolCallProgress):
-            # tool call update → update structured state
-            self._app._update_tool_call(
-                upd.tool_call_id, status=upd.status, content=upd.content
-            )
-            self._app.call_from_thread(self._app.update_content)
+        match upd:
+            case AgentMessageChunk():
+                # agent message
+                txt = _content_to_text(upd.content)
+                _post(UIMessage("assistant", txt))
+            case UserMessageChunk():
+                txt = _content_to_text(upd.content)
+                _post(UIMessage("user", txt))
+            case AgentThoughtChunk():
+                # agent thought chunk (informational)
+                txt = _content_to_text(upd.content)
+                _post(UIMessage("assistant", f"[thought]\n{txt}"))
+            case ToolCallStart():
+                # tool call start → record structured state
+                self._app._update_tool_call(
+                    upd.tool_call_id,
+                    title=upd.title or "",
+                    status=upd.status or "pending",
+                    content=upd.content,
+                )
+                self._app.call_from_thread(self._app.update_content)
+            case ToolCallProgress():
+                # tool call update → update structured state
+                self._app._update_tool_call(
+                    upd.tool_call_id, status=upd.status, content=upd.content
+                )
+                self._app.call_from_thread(self._app.update_content)
 
     async def requestPermission(
         self, params: RequestPermissionRequest
@@ -473,9 +474,8 @@ class TextualMiniSweClient(App):
             lambda _agent: MiniSweClientImpl(self), writer, reader
         )
         try:
-            resp = await self._conn.initialize(
-                InitializeRequest(protocol_version=PROTOCOL_VERSION)
-            )
+            request = InitializeRequest(protocol_version=PROTOCOL_VERSION)
+            resp = await self._conn.initialize(request)
             self.call_from_thread(
                 lambda: (
                     self.enqueue_message(
