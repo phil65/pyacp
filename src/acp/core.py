@@ -10,6 +10,7 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
 
+from .exceptions import RequestError
 from .meta import AGENT_METHODS, CLIENT_METHODS
 from .schema import (
     AuthenticateRequest,
@@ -51,42 +52,6 @@ _CLIENT_CONNECTION_ERROR = (
     "ClientSideConnection requires asyncio StreamWriter/StreamReader"
 )
 ConfirmationMode = Literal["confirm", "yolo", "human"]
-
-
-class RequestError(Exception):
-    """Raised when a JSON-RPC request fails."""
-
-    def __init__(self, code: int, message: str, data: Any | None = None) -> None:
-        super().__init__(message)
-        self.code = code
-        self.data = data
-
-    @staticmethod
-    def parse_error(data: dict | None = None) -> RequestError:
-        return RequestError(-32700, "Parse error", data)
-
-    @staticmethod
-    def invalid_request(data: dict | None = None) -> RequestError:
-        return RequestError(-32600, "Invalid request", data)
-
-    @staticmethod
-    def method_not_found(method: str) -> RequestError:
-        return RequestError(-32601, "Method not found", {"method": method})
-
-    @staticmethod
-    def invalid_params(data: dict | None = None) -> RequestError:
-        return RequestError(-32602, "Invalid params", data)
-
-    @staticmethod
-    def internal_error(data: dict | None = None) -> RequestError:
-        return RequestError(-32603, "Internal error", data)
-
-    @staticmethod
-    def auth_required(data: dict | None = None) -> RequestError:
-        return RequestError(-32000, "Authentication required", data)
-
-    def to_error_obj(self) -> dict:
-        return {"code": self.code, "message": str(self), "data": self.data}
 
 
 # --- Transport & Connection ------------------------------------------------------
