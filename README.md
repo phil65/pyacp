@@ -2,8 +2,6 @@
 
 [![PyPI License](https://img.shields.io/pypi/l/pyacp.svg)](https://pypi.org/project/pyacp/)
 [![Package status](https://img.shields.io/pypi/status/pyacp.svg)](https://pypi.org/project/pyacp/)
-[![Daily downloads](https://img.shields.io/pypi/dd/pyacp.svg)](https://pypi.org/project/pyacp/)
-[![Weekly downloads](https://img.shields.io/pypi/dw/pyacp.svg)](https://pypi.org/project/pyacp/)
 [![Monthly downloads](https://img.shields.io/pypi/dm/pyacp.svg)](https://pypi.org/project/pyacp/)
 [![Distribution format](https://img.shields.io/pypi/format/pyacp.svg)](https://pypi.org/project/pyacp/)
 [![Wheel availability](https://img.shields.io/pypi/wheel/pyacp.svg)](https://pypi.org/project/pyacp/)
@@ -21,12 +19,8 @@
 [![Github last commit](https://img.shields.io/github/last-commit/phil65/pyacp)](https://github.com/phil65/pyacp/commits)
 [![Github release date](https://img.shields.io/github/release-date/phil65/pyacp)](https://github.com/phil65/pyacp/releases)
 [![Github language count](https://img.shields.io/github/languages/count/phil65/pyacp)](https://github.com/phil65/pyacp)
-[![Github commits this week](https://img.shields.io/github/commit-activity/w/phil65/pyacp)](https://github.com/phil65/pyacp)
 [![Github commits this month](https://img.shields.io/github/commit-activity/m/phil65/pyacp)](https://github.com/phil65/pyacp)
-[![Github commits this year](https://img.shields.io/github/commit-activity/y/phil65/pyacp)](https://github.com/phil65/pyacp)
 [![Package status](https://codecov.io/gh/phil65/pyacp/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/pyacp/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyUp](https://pyup.io/repos/github/phil65/pyacp/shield.svg)](https://pyup.io/repos/github/phil65/pyacp/)
 
 [Read the documentation!](https://phil65.github.io/pyacp/)
-
