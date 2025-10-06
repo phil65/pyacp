@@ -77,9 +77,6 @@ exclude_lines = [
   'if __name__ == "__main__":',
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/acp"]
-
 [tool.mknodes]
 allowed-commit-types = [
   "fix",
@@ -272,3 +269,6 @@ python-version = "3.12"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
+
+[tool.uv.build-backend]
+module-name = ["acp"]
