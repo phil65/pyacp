@@ -1,5 +1,11 @@
 """Agent Client protocol (ACP) implementation."""
 
+from __future__ import annotations
+
+from importlib.metadata import version
+
+__version__ = version("pyacp")
+
 from .core import (
     Agent,
     AgentSideConnection,
@@ -46,11 +52,10 @@ from .schema import (
 from .stdio import stdio_streams
 from .exceptions import RequestError
 
-__version__ = "0.0.1"
-
 __all__ = [  # noqa: RUF022
     # constants
     "PROTOCOL_VERSION",
+    "__version__",
     "AGENT_METHODS",
     "CLIENT_METHODS",
     # types
