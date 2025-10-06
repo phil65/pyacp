@@ -31,7 +31,6 @@ dependencies = [
   "schemez",
   # Only add below (Copier)
 ]
-dynamic = ["version"]
 
 [project.urls]
 "Code coverage" = "https://app.codecov.io/gh/phil65/pyacp"
@@ -77,6 +76,9 @@ exclude_lines = [
   "except ImportError",
   'if __name__ == "__main__":',
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acp"]
 
 [tool.mknodes]
 allowed-commit-types = [
