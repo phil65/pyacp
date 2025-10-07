@@ -1,6 +1,6 @@
 [project]
 name = "pyacp"
-version = "0.1.1"
+version = "1.0.0"
 description = "Agent client protocol implementation"
 readme = "README.md"
 requires-python = ">=3.13"
