@@ -10,7 +10,7 @@ ROOT = Path.cwd()
 def main() -> None:
     meta_json = ROOT / "schema" / "meta.json"
     out_py = ROOT / "src" / "acp" / "meta.py"
-    data = json.loads(meta_json.read_text())
+    data = json.loads(meta_json.read_text("utf-8"))
     agent_methods = data.get("agentMethods", {})
     client_methods = data.get("clientMethods", {})
     version = data.get("version", 1)

@@ -359,7 +359,7 @@ class TextualMiniSweClient(App):
             ),
         )
         try:
-            self.__class__.CSS = Path(css_path).read_text()
+            self.__class__.CSS = Path(css_path).read_text("utf-8")
         except Exception:  # noqa: BLE001
             self.__class__.CSS = ""
         super().__init__()
