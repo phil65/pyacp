@@ -1,24 +1,25 @@
 """Agent Client protocol (ACP) implementation."""
 
-from __future__ import annotations
-
-from importlib.metadata import version
-
-__version__ = version("pyacp")
-
-from .core import (
+from acp.client import DefaultACPClient
+from acp.core import (
     Agent,
+    AgentExtensibilityCapability,
     AgentSideConnection,
+    BaseAgent,
+    BaseClient,
     Client,
     ClientSideConnection,
-    TerminalHandle,
+    ExtensibilityCapability,
+    FileSystemCapability,
+    SessionModeCapability,
+    SessionModelCapability,
+    SessionPersistenceCapability,
+    TerminalCapability,
+    create_session_model_state,
 )
-from .meta import (
-    AGENT_METHODS,
-    CLIENT_METHODS,
-    PROTOCOL_VERSION,
-)
-from .schema import (
+from acp.terminal_handle import TerminalHandle
+from acp.meta import AGENT_METHODS, CLIENT_METHODS, PROTOCOL_VERSION
+from acp.schema import (
     AuthenticateRequest,
     AuthenticateResponse,
     CancelNotification,
@@ -29,6 +30,8 @@ from .schema import (
     KillTerminalCommandRequest,
     KillTerminalCommandResponse,
     LoadSessionRequest,
+    LoadSessionResponse,
+    ModelInfo,
     NewSessionRequest,
     NewSessionResponse,
     PromptRequest,
@@ -39,7 +42,10 @@ from .schema import (
     ReleaseTerminalResponse,
     RequestPermissionRequest,
     RequestPermissionResponse,
+    SessionModelState,
     SessionNotification,
+    SetSessionModelRequest,
+    SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
     TerminalOutputRequest,
@@ -49,13 +55,14 @@ from .schema import (
     WriteTextFileRequest,
     WriteTextFileResponse,
 )
-from .stdio import stdio_streams
-from .exceptions import RequestError
+from acp.stdio import stdio_streams
+from acp.exceptions import RequestError
+
+__version__ = "0.0.1"
 
 __all__ = [  # noqa: RUF022
     # constants
     "PROTOCOL_VERSION",
-    "__version__",
     "AGENT_METHODS",
     "CLIENT_METHODS",
     # types
@@ -64,6 +71,7 @@ __all__ = [  # noqa: RUF022
     "NewSessionRequest",
     "NewSessionResponse",
     "LoadSessionRequest",
+    "LoadSessionResponse",
     "AuthenticateRequest",
     "AuthenticateResponse",
     "PromptRequest",
@@ -78,6 +86,11 @@ __all__ = [  # noqa: RUF022
     "SessionNotification",
     "SetSessionModeRequest",
     "SetSessionModeResponse",
+    # model types
+    "ModelInfo",
+    "SessionModelState",
+    "SetSessionModelRequest",
+    "SetSessionModelResponse",
     # terminal types
     "CreateTerminalRequest",
     "CreateTerminalResponse",
@@ -95,7 +108,20 @@ __all__ = [  # noqa: RUF022
     "RequestError",
     "Agent",
     "Client",
+    "DefaultACPClient",
     "TerminalHandle",
+    # split protocols
+    "BaseAgent",
+    "SessionPersistenceCapability",
+    "SessionModeCapability",
+    "SessionModelCapability",
+    "AgentExtensibilityCapability",
+    "BaseClient",
+    "FileSystemCapability",
+    "TerminalCapability",
+    "ExtensibilityCapability",
+    # utilities
+    "create_session_model_state",
     # stdio helper
     "stdio_streams",
 ]
