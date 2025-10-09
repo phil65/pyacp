@@ -4,7 +4,8 @@ version = "1.0.0"
 description = "Agent client protocol implementation"
 readme = "README.md"
 requires-python = ">=3.13"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
@@ -260,13 +261,14 @@ combine-as-imports = true
 "src/acp/core.py" = ["N802"]  # ACP protocol requires camelCase method names
 "tests/test_rpc.py" = ["N802"]
 "examples/**/*.py" = ["N802"]
+"*tests/*" = ["D100"]
 
 [tool.ruff.format]
-# Enable preview style formatting.
 preview = true
 
 [tool.ty.environment]
 python-version = "3.13"
+python-platform = "all"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
